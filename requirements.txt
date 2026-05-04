@@ -1,0 +1,6 @@
+groq
+google-cloud-texttospeech
+streamlit
+audio-recorder-streamlit
+python-dotenv
+gtts
