@@ -46,14 +46,6 @@ Get your API keys before running:
 1. Groq: console.groq.com (free tier works)
 2. Google Cloud: Enable Cloud TTS API, download credentials.json
 
-## Build Schedule
-
-- Day 1: Text loop (type question, get Hindi advice)
-- Day 2: Add STT (audio file in, Hindi text out)
-- Day 3: Add TTS (full audio in, audio out)
-- Day 4: Streamlit UI (phone-frame styling)
-- Day 5: Polish and rehearse
-
 ## Demo
 
 User: "Mujhe 50,000 rupaye FD mein rakhne hain, kahan rakhun?"
