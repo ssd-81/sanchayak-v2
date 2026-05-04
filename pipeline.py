@@ -1,5 +1,6 @@
 import os
 import json
+import io
 from fd_data import FD_OPTIONS
 
 SYSTEM_PROMPT = """Aap ek helpful FD advisor hain jo Tier 2/3 India ke users ke liye kaam karte hain.
@@ -16,11 +17,19 @@ FD Options: {fd_data}
 """
 
 
-def transcribe_audio(audio_bytes: bytes) -> str:
-    """Hindi audio bytes → Hindi text via Groq Whisper"""
+def get_groq_client():
+    """Get Groq client with API key"""
     from groq import Groq
 
-    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not set in environment")
+    return Groq(api_key=api_key)
+
+
+def transcribe_audio(audio_bytes: bytes) -> str:
+    """Hindi audio bytes → Hindi text via Groq Whisper"""
+    client = get_groq_client()
     transcription = client.audio.transcriptions.create(
         file=("audio.wav", audio_bytes),
         model="whisper-large-v3-turbo",
@@ -32,9 +41,7 @@ def transcribe_audio(audio_bytes: bytes) -> str:
 
 def get_fd_advice(user_query: str) -> str:
     """Hindi text → Hindi FD advice via Groq LLM"""
-    from groq import Groq
-
-    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    client = get_groq_client()
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
@@ -52,8 +59,8 @@ def get_fd_advice(user_query: str) -> str:
     return response.choices[0].message.content
 
 
-def text_to_speech_hindi(text: str) -> bytes:
-    """Hindi text → Hindi audio bytes via Google TTS"""
+def text_to_speech_google(text: str) -> bytes:
+    """Hindi text → Hindi audio bytes via Google Cloud TTS"""
     from google.cloud import texttospeech
 
     tts_client = texttospeech.TextToSpeechClient()
@@ -70,11 +77,31 @@ def text_to_speech_hindi(text: str) -> bytes:
     return response.audio_content
 
 
-def run_pipeline(audio_bytes: bytes):
+def text_to_speech_gtts(text: str) -> bytes:
+    """Hindi text → Hindi audio bytes via gTTS (fallback)"""
+    from gtts import gTTS
+
+    tts = gTTS(text=text, lang="hi", slow=False)
+    buf = io.BytesIO()
+    tts.write_to_fp(buf)
+    return buf.getvalue()
+
+
+def text_to_speech_hindi(text: str, use_gtts: bool = False) -> bytes:
+    """Hindi text → Hindi audio bytes. Try Google first, fallback to gTTS."""
+    if use_gtts:
+        return text_to_speech_gtts(text)
+    try:
+        return text_to_speech_google(text)
+    except Exception:
+        return text_to_speech_gtts(text)
+
+
+def run_pipeline(audio_bytes: bytes, use_gtts: bool = False):
     """Full loop: audio → transcript → advice → speech"""
     transcript = transcribe_audio(audio_bytes)
     advice = get_fd_advice(transcript)
-    audio_out = text_to_speech_hindi(advice)
+    audio_out = text_to_speech_hindi(advice, use_gtts=use_gtts)
     return transcript, advice, audio_out
 
 
