@@ -1,0 +1,13 @@
+buildOne.md
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+*.log
+.env
+.credentials.json
