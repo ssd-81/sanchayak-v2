@@ -2,6 +2,7 @@ import streamlit as st
 import os
 from audio_recorder_streamlit import audio_recorder
 from pipeline import run_pipeline, get_fd_comparison
+from test_utils import mock_fd_advice
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -91,7 +92,10 @@ else:
     if st.button("Send") and user_input:
         with st.spinner("Soch raha hoon..."):
             try:
-                advice = get_fd_comparison(user_input)
+                if api_key:
+                    advice = get_fd_comparison(user_input)
+                else:
+                    advice = mock_fd_advice(user_input)
                 st.success("Ho gaya!")
                 st.markdown(f"**Salah:** {advice}")
             except Exception as e:
