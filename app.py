@@ -33,9 +33,10 @@ st.title("FD Sahayak")
 st.caption("Hindi mein boliye, FD ke baare mein janiye")
 
 api_key = os.environ.get("GROQ_API_KEY")
+api_key_set = bool(api_key and api_key.strip() and not api_key.startswith("your_"))
 
-if not api_key:
-    st.warning("GROQ_API_KEY not set. Using text-only mode.")
+if not api_key_set:
+    st.warning("GROQ_API_KEY not set. Using mock mode.")
     st.session_state.text_mode = True
 else:
     st.session_state.text_mode = False
@@ -49,7 +50,7 @@ with col2:
 
 st.markdown("---")
 
-if mode == "voice" and not st.session_state.text_mode:
+if mode == "voice" and not st.session_state.text_mode and api_key_set:
     st.subheader("Record apna sawaal")
     
     audio_bytes = audio_recorder(pause_threshold=2.0, sample_rate=16000)
@@ -92,7 +93,7 @@ else:
     if st.button("Send") and user_input:
         with st.spinner("Soch raha hoon..."):
             try:
-                if api_key:
+                if api_key_set:
                     advice = get_fd_comparison(user_input)
                 else:
                     advice = mock_fd_advice(user_input)
