@@ -323,35 +323,23 @@ if st.session_state.mode == "voice":
         )
         
         if audio_bytes:
-            st.write(f"DEBUG: Got audio, {len(audio_bytes)} bytes, type: {type(audio_bytes)}")
-            status_placeholder = st.empty()
-            status_placeholder.info("Soch raha hoon...")
-            try:
-                if api_key_set:
-                    import traceback
-                    try:
-                        st.write("DEBUG: Calling run_pipeline...")
+            with st.spinner("Processing..."):
+                try:
+                    if api_key_set:
                         transcript, advice, audio_out = run_pipeline(audio_bytes, use_gtts=True)
-                        st.write(f"DEBUG: Got transcript: {transcript[:50]}...")
-                    except Exception as api_err:
-                        st.error(f"API Error: {api_err}")
-                        traceback.print_exc()
-                        transcript = "Transcription failed"
-                        advice = f"Error: {str(api_err)}"
+                    else:
+                        transcript = "Mock transcription"
+                        advice = mock_fd_advice("FD query")
                         audio_out = None
-                else:
-                    transcript = "Mock transcription"
-                    advice = mock_fd_advice("FD query")
-                    audio_out = None
-                st.session_state.transcript = transcript
-                st.session_state.current_advice = advice
-                st.session_state.audio_out = audio_out
-                status_placeholder.empty()
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error: {e}")
-                import traceback
-                st.code(traceback.format_exc())
+                    st.session_state.transcript = transcript
+                    st.session_state.current_advice = advice
+                    st.session_state.audio_out = audio_out
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+                    st.session_state.transcript = "Error in transcription"
+                    st.session_state.current_advice = str(e)
+                    st.session_state.audio_out = None
         elif st.session_state.transcript:
             st.markdown(f'''
             <div class="voice-response">

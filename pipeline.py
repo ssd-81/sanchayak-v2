@@ -30,9 +30,23 @@ def get_groq_client():
 
 def transcribe_audio(audio_bytes: bytes) -> str:
     """Hindi audio bytes → Hindi text via Groq Whisper"""
+    import wave
+    import io as io_module
+    
+    wav_buffer = io_module.BytesIO()
+    try:
+        with wave.open(wav_buffer, 'wb') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(16000)
+            wf.writeframes(audio_bytes)
+        wav_data = wav_buffer.getvalue()
+    except Exception:
+        wav_data = audio_bytes
+    
     client = get_groq_client()
     transcription = client.audio.transcriptions.create(
-        file=("audio.wav", audio_bytes),
+        file=("audio.wav", wav_data),
         model="whisper-large-v3-turbo",
         language="hi",
         response_format="text",
