@@ -328,9 +328,9 @@ if st.session_state.mode == "voice":
             key=f"vrec_{st.session_state.recorder_count}"
         )
         
-        print(f"[DEBUG] mode={st.session_state.mode}, has_advice={bool(st.session_state.current_advice)}, has_audio={bool(audio_bytes)}")
+        print(f"[DEBUG] mode={st.session_state.mode}, has_advice={bool(st.session_state.current_advice)}, has_audio={bool(audio_bytes)}, audio_len={len(audio_bytes) if audio_bytes else 0}")
         
-        if audio_bytes and not st.session_state.current_advice:
+        if audio_bytes and len(audio_bytes) > 1000 and not st.session_state.current_advice:
             print("[APP] Processing new audio...")
             with st.spinner("Processing..."):
                 try:
