@@ -335,18 +335,18 @@ if st.session_state.mode == "voice":
                         transcript = "Mock transcription"
                         advice = mock_fd_advice("FD query")
                         audio_out = None
+                    
+                    st.session_state.processing = False
                     st.session_state.transcript = transcript
                     st.session_state.current_advice = advice
-                    st.session_state.audio_out = audio_out
-                    st.session_state.processing = False
-                    st.rerun()
                 except Exception as e:
                     st.session_state.processing = False
                     st.error(f"Error: {str(e)}")
-                    st.session_state.transcript = "Error in transcription"
+                    st.session_state.transcript = "Error"
                     st.session_state.current_advice = str(e)
-                    st.session_state.audio_out = None
-        elif st.session_state.transcript:
+                    audio_out = None
+        
+        if st.session_state.current_advice:
             st.markdown(f'''
             <div class="voice-response">
                 <div class="resp-card">
@@ -360,13 +360,9 @@ if st.session_state.mode == "voice":
             </div>
             ''', unsafe_allow_html=True)
             
-            if st.session_state.audio_out:
-                st.audio(st.session_state.audio_out, format="audio/mp3")
-            
             if st.button("Naya sawaal"):
                 st.session_state.transcript = ""
                 st.session_state.current_advice = ""
-                st.session_state.audio_out = None
                 st.rerun()
 
 else:
