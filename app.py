@@ -96,8 +96,8 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         min-height: 200px;
-        max-height: 400px;
-        overflow: hidden;
+        max-height: 500px;
+        overflow-y: auto;
     }
     
     /* Voice Mode */
@@ -318,7 +318,13 @@ if st.session_state.mode == "voice":
         """, unsafe_allow_html=True)
         
         st.markdown('<div class="voice-recorder">', unsafe_allow_html=True)
-        audio_bytes = audio_recorder(pause_threshold=2.0, sample_rate=16000, key="vrec")
+        audio_bytes = audio_recorder(
+            text="🎤 Record boliye",
+            pause_threshold=2.0,
+            sample_rate=16000,
+            energy_threshold=0.01,
+            key="vrec"
+        )
         st.markdown('</div>', unsafe_allow_html=True)
         
         if audio_bytes:
