@@ -366,27 +366,28 @@ if st.session_state.mode == "voice":
             print("[APP] Setting audio_bytes=None")
             audio_bytes = None
             print("[APP] Done with audio_bytes=None")
-            print("[DEBUG] Exiting recorder block - not entering response display")
+            print("[DEBUG] Exiting recorder block")
     else:
-        print("[APP] Entered response block (should NOT happen if advice set above)")
-        print("[APP] About to show response")
+        print("[APP] Showing response")
+        saved_transcript = st.session_state.transcript
+        saved_advice = st.session_state.current_advice
+        st.session_state.current_advice = ""
+        
         try:
             st.markdown(f'''
             <div class="voice-response">
                 <div class="resp-card">
                     <h4>Aapne kaha</h4>
-                    <p>{st.session_state.transcript}</p>
+                    <p>{saved_transcript}</p>
                 </div>
                 <div class="resp-card">
                     <h4>Salah</h4>
-                    <p>{st.session_state.current_advice}</p>
+                    <p>{saved_advice}</p>
                 </div>
             </div>
             ''', unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Display error: {e}")
-            st.write("Transcript:", st.session_state.transcript)
-            st.write("Advice:", st.session_state.current_advice)
         
         if st.button("Naya sawaal"):
             st.session_state.transcript = ""
