@@ -285,6 +285,9 @@ if "transcript" not in st.session_state:
 if "audio_out" not in st.session_state:
     st.session_state.audio_out = None
 
+if "processing" not in st.session_state:
+    st.session_state.processing = False
+
 st.markdown('<div class="main-wrapper">', unsafe_allow_html=True)
 
 st.markdown("""
@@ -322,7 +325,8 @@ if st.session_state.mode == "voice":
             key="vrec"
         )
         
-        if audio_bytes:
+        if audio_bytes and not st.session_state.processing and not st.session_state.current_advice:
+            st.session_state.processing = True
             with st.spinner("Processing..."):
                 try:
                     if api_key_set:
@@ -334,8 +338,10 @@ if st.session_state.mode == "voice":
                     st.session_state.transcript = transcript
                     st.session_state.current_advice = advice
                     st.session_state.audio_out = audio_out
+                    st.session_state.processing = False
                     st.rerun()
                 except Exception as e:
+                    st.session_state.processing = False
                     st.error(f"Error: {str(e)}")
                     st.session_state.transcript = "Error in transcription"
                     st.session_state.current_advice = str(e)

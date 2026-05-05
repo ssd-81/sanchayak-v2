@@ -114,9 +114,13 @@ def text_to_speech_hindi(text: str, use_gtts: bool = False) -> bytes:
 
 def run_pipeline(audio_bytes: bytes, use_gtts: bool = False):
     """Full loop: audio → transcript → advice → speech"""
+    print(f"[PIPELINE] Audio received: {len(audio_bytes)} bytes")
     transcript = transcribe_audio(audio_bytes)
+    print(f"[PIPELINE] Transcript: {transcript[:50]}...")
     advice = get_fd_advice(transcript)
+    print(f"[PIPELINE] Advice: {advice[:50]}...")
     audio_out = text_to_speech_hindi(advice, use_gtts=use_gtts)
+    print(f"[PIPELINE] Audio out: {len(audio_out)} bytes")
     return transcript, advice, audio_out
 
 
