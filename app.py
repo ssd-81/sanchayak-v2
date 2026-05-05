@@ -325,6 +325,8 @@ if st.session_state.mode == "voice":
             key="vrec"
         )
         
+        print(f"[DEBUG] mode={st.session_state.mode}, has_advice={bool(st.session_state.current_advice)}, has_audio={bool(audio_bytes)}")
+        
         if audio_bytes and not st.session_state.current_advice:
             print("[APP] Processing new audio...")
             with st.spinner("Processing..."):
@@ -337,17 +339,22 @@ if st.session_state.mode == "voice":
                         transcript = "Mock transcription"
                         advice = mock_fd_advice("FD query")
                     
+                    print(f"[APP] Got transcript: {transcript[:30]}...")
                     print(f"[APP] Got advice: {advice[:50]}...")
                     st.session_state.transcript = transcript
                     st.session_state.current_advice = advice
-                    st.rerun()
                 except Exception as e:
                     print(f"[APP] Error: {e}")
                     st.error(f"Error: {str(e)}")
                     st.session_state.transcript = "Error"
                     st.session_state.current_advice = str(e)
+            
+            audio_bytes = None
         
         if st.session_state.current_advice:
+        
+        if st.session_state.current_advice:
+            print("[APP] Showing response")
             st.markdown(f'''
             <div class="voice-response">
                 <div class="resp-card">
