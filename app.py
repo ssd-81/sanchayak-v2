@@ -319,76 +319,65 @@ with col2:
 st.markdown('<div class="content-area">', unsafe_allow_html=True)
 
 if st.session_state.mode == "voice":
-    if not st.session_state.current_advice:
-        st.markdown('<div class="voice-center">', unsafe_allow_html=True)
+    st.markdown('<div class="voice-center">', unsafe_allow_html=True)
+    
+    try:
+        audio_bytes = audio_recorder(
+        text="Tap to record",
+        pause_threshold=2.0,
+        sample_rate=16000,
+        energy_threshold=0.01,
+        icon_name="microphone",
+        icon_size="4x",
+        neutral_color="#10a37f",
+        recording_color="#ff0000",
+        key=f"vrec_{st.session_state.recorder_count}"
+    )
+    except Exception as rec_err:
+        print(f"[ERROR] Recorder error: {rec_err}")
+        audio_bytes = None
+    
+    print(f"[DEBUG] mode={st.session_state.mode}, has_advice={bool(st.session_state.current_advice)}, has_audio={bool(audio_bytes)}, audio_len={len(audio_bytes) if audio_bytes else 0}")
+    
+    if audio_bytes and len(audio_bytes) > 1000:
+        print("[APP] Processing new audio...")
+        with st.spinner("Processing..."):
+            try:
+                if api_key_set:
+                    from pipeline import transcribe_audio, get_fd_advice
+                    transcript = transcribe_audio(audio_bytes)
+                    advice = get_fd_advice(transcript)
+                else:
+                    transcript = "Mock transcription"
+                    advice = mock_fd_advice("FD query")
+                
+                print(f"[APP] Got transcript: {transcript[:30]}...")
+                print(f"[APP] Got advice: {advice[:50]}...")
+                st.session_state.transcript = transcript
+                st.session_state.current_advice = advice
+                print("[APP] Stored in session, rerunning...")
+                st.rerun()
+            except Exception as e:
+                print(f"[APP] Error: {e}")
+                st.error(f"Error: {str(e)}")
+                st.session_state.transcript = "Error"
+                st.session_state.current_advice = str(e)
         
-        try:
-            audio_bytes = audio_recorder(
-            text="Tap to record",
-            pause_threshold=2.0,
-            sample_rate=16000,
-            energy_threshold=0.01,
-            icon_name="microphone",
-            icon_size="4x",
-            neutral_color="#10a37f",
-            recording_color="#ff0000",
-            key=f"vrec_{st.session_state.recorder_count}"
-        )
-        except Exception as rec_err:
-            print(f"[ERROR] Recorder error: {rec_err}")
-            audio_bytes = None
-        
-        print(f"[DEBUG] mode={st.session_state.mode}, has_advice={bool(st.session_state.current_advice)}, has_audio={bool(audio_bytes)}, audio_len={len(audio_bytes) if audio_bytes else 0}")
-        
-        if audio_bytes and len(audio_bytes) > 1000:
-            print("[APP] Processing new audio...")
-            with st.spinner("Processing..."):
-                try:
-                    if api_key_set:
-                        from pipeline import transcribe_audio, get_fd_advice
-                        transcript = transcribe_audio(audio_bytes)
-                        advice = get_fd_advice(transcript)
-                    else:
-                        transcript = "Mock transcription"
-                        advice = mock_fd_advice("FD query")
-                    
-                    print(f"[APP] Got transcript: {transcript[:30]}...")
-                    print(f"[APP] Got advice: {advice[:50]}...")
-                    st.session_state.transcript = transcript
-                    st.session_state.current_advice = advice
-                    print("[APP] Stored in session, rerunning...")
-                    st.rerun()
-                except Exception as e:
-                    print(f"[APP] Error: {e}")
-                    st.error(f"Error: {str(e)}")
-                    st.session_state.transcript = "Error"
-                    st.session_state.current_advice = str(e)
-            
-            print("[APP] Setting audio_bytes=None")
-            audio_bytes = None
-            print("[APP] Done with audio_bytes=None")
-            print("[DEBUG] Exiting recorder block")
-    else:
-        print("[APP] Showing response")
-        saved_transcript = st.session_state.transcript
-        saved_advice = st.session_state.current_advice
-        st.session_state.current_advice = ""
-        
-        try:
-            st.markdown(f'''
-            <div class="voice-response">
-                <div class="resp-card">
-                    <h4>Aapne kaha</h4>
-                    <p>{saved_transcript}</p>
-                </div>
-                <div class="resp-card">
-                    <h4>Salah</h4>
-                    <p>{saved_advice}</p>
-                </div>
+        audio_bytes = None
+    
+    if st.session_state.transcript:
+        st.markdown(f'''
+        <div class="voice-response">
+            <div class="resp-card">
+                <h4>Aapne kaha</h4>
+                <p>{st.session_state.transcript}</p>
             </div>
-            ''', unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Display error: {e}")
+            <div class="resp-card">
+                <h4>Salah</h4>
+                <p>{st.session_state.current_advice}</p>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
         
         if st.button("Naya sawaal"):
             st.session_state.transcript = ""
