@@ -136,6 +136,15 @@ st.markdown("""
         font-size: 14px;
         color: #666;
     }
+
+    .voice-recorder {
+        margin: 20px 0;
+        min-height: 80px;
+    }
+
+    .voice-recorder iframe {
+        border-radius: 12px;
+    }
     
     /* Voice Response */
     .voice-response {
@@ -305,7 +314,9 @@ if st.session_state.mode == "voice":
         </div>
         """, unsafe_allow_html=True)
         
+        st.markdown('<div class="voice-recorder">', unsafe_allow_html=True)
         audio_bytes = audio_recorder(pause_threshold=2.0, sample_rate=16000, key="vrec")
+        st.markdown('</div>', unsafe_allow_html=True)
         
         if audio_bytes:
             status_placeholder = st.empty()
