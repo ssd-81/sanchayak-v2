@@ -291,6 +291,12 @@ if "processing" not in st.session_state:
 if "recorder_count" not in st.session_state:
     st.session_state.recorder_count = 0
 
+if "render_count" not in st.session_state:
+    st.session_state.render_count = 0
+
+st.session_state.render_count += 1
+print(f"[DEBUG] Render #{st.session_state.render_count}")
+
 st.markdown('<div class="main-wrapper">', unsafe_allow_html=True)
 
 st.markdown("""
@@ -334,7 +340,7 @@ if st.session_state.mode == "voice":
         
         print(f"[DEBUG] mode={st.session_state.mode}, has_advice={bool(st.session_state.current_advice)}, has_audio={bool(audio_bytes)}, audio_len={len(audio_bytes) if audio_bytes else 0}")
         
-        if audio_bytes and len(audio_bytes) > 1000 and not st.session_state.current_advice:
+        if audio_bytes and len(audio_bytes) > 1000:
             print("[APP] Processing new audio...")
             with st.spinner("Processing..."):
                 try:
@@ -360,35 +366,33 @@ if st.session_state.mode == "voice":
             print("[APP] Setting audio_bytes=None")
             audio_bytes = None
             print("[APP] Done with audio_bytes=None")
-        
-        print(f"[DEBUG] After nullify: audio={bool(audio_bytes)}, advice={st.session_state.current_advice[:30] if st.session_state.current_advice else 'None'}")
-        
-        if st.session_state.current_advice:
-            print("[APP] About to show response")
-            try:
-                st.markdown(f'''
-                <div class="voice-response">
-                    <div class="resp-card">
-                        <h4>Aapne kaha</h4>
-                        <p>{st.session_state.transcript}</p>
-                    </div>
-                    <div class="resp-card">
-                        <h4>Salah</h4>
-                        <p>{st.session_state.current_advice}</p>
-                    </div>
+            print("[DEBUG] Exiting recorder block - not entering response display")
+    else:
+        print("[APP] Entered response block (should NOT happen if advice set above)")
+        print("[APP] About to show response")
+        try:
+            st.markdown(f'''
+            <div class="voice-response">
+                <div class="resp-card">
+                    <h4>Aapne kaha</h4>
+                    <p>{st.session_state.transcript}</p>
                 </div>
-                ''', unsafe_allow_html=True)
-            except Exception as e:
-                st.error(f"Display error: {e}")
-                st.write("Transcript:", st.session_state.transcript)
-                st.write("Advice:", st.session_state.current_advice)
-            
-            if st.button("Naya sawaal"):
-                st.session_state.transcript = ""
-                st.session_state.current_advice = ""
-                st.session_state.recorder_count += 1
-
-print("[DEBUG] Finished voice mode rendering")
+                <div class="resp-card">
+                    <h4>Salah</h4>
+                    <p>{st.session_state.current_advice}</p>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Display error: {e}")
+            st.write("Transcript:", st.session_state.transcript)
+            st.write("Advice:", st.session_state.current_advice)
+        
+        if st.button("Naya sawaal"):
+            st.session_state.transcript = ""
+            st.session_state.current_advice = ""
+            st.session_state.recorder_count += 1
+            st.rerun()
 
 else:
     st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
