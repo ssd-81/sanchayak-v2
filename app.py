@@ -288,6 +288,9 @@ if "audio_out" not in st.session_state:
 if "processing" not in st.session_state:
     st.session_state.processing = False
 
+if "recorder_count" not in st.session_state:
+    st.session_state.recorder_count = 0
+
 st.markdown('<div class="main-wrapper">', unsafe_allow_html=True)
 
 st.markdown("""
@@ -322,7 +325,7 @@ if st.session_state.mode == "voice":
             icon_size="4x",
             neutral_color="#10a37f",
             recording_color="#ff0000",
-            key="vrec"
+            key=f"vrec_{st.session_state.recorder_count}"
         )
         
         print(f"[DEBUG] mode={st.session_state.mode}, has_advice={bool(st.session_state.current_advice)}, has_audio={bool(audio_bytes)}")
@@ -352,8 +355,6 @@ if st.session_state.mode == "voice":
             audio_bytes = None
         
         if st.session_state.current_advice:
-        
-        if st.session_state.current_advice:
             print("[APP] Showing response")
             st.markdown(f'''
             <div class="voice-response">
@@ -371,7 +372,7 @@ if st.session_state.mode == "voice":
             if st.button("Naya sawaal"):
                 st.session_state.transcript = ""
                 st.session_state.current_advice = ""
-                st.rerun()
+                st.session_state.recorder_count += 1
 
 else:
     st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
