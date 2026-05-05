@@ -356,7 +356,8 @@ if st.session_state.mode == "voice":
                     print(f"[APP] Got advice: {advice[:50]}...")
                     st.session_state.transcript = transcript
                     st.session_state.current_advice = advice
-                    print("[APP] Stored in session, about to set audio_bytes=None")
+                    print("[APP] Stored in session, rerunning...")
+                    st.rerun()
                 except Exception as e:
                     print(f"[APP] Error: {e}")
                     st.error(f"Error: {str(e)}")
