@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import traceback
 from fd_data import FD_OPTIONS
 
 SYSTEM_PROMPT = """Aap ek helpful FD advisor hain jo Tier 2/3 India ke users ke liye kaam karte hain.
@@ -24,7 +25,7 @@ def get_groq_client():
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY not set in environment")
-    return Groq(api_key=api_key)
+    return Groq(api_key=api_key, timeout=60)
 
 
 def transcribe_audio(audio_bytes: bytes) -> str:

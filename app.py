@@ -323,12 +323,22 @@ if st.session_state.mode == "voice":
         )
         
         if audio_bytes:
-            st.write(f"DEBUG: Got audio, {len(audio_bytes)} bytes")
+            st.write(f"DEBUG: Got audio, {len(audio_bytes)} bytes, type: {type(audio_bytes)}")
             status_placeholder = st.empty()
             status_placeholder.info("Soch raha hoon...")
             try:
                 if api_key_set:
-                    transcript, advice, audio_out = run_pipeline(audio_bytes)
+                    import traceback
+                    try:
+                        st.write("DEBUG: Calling run_pipeline...")
+                        transcript, advice, audio_out = run_pipeline(audio_bytes, use_gtts=True)
+                        st.write(f"DEBUG: Got transcript: {transcript[:50]}...")
+                    except Exception as api_err:
+                        st.error(f"API Error: {api_err}")
+                        traceback.print_exc()
+                        transcript = "Transcription failed"
+                        advice = f"Error: {str(api_err)}"
+                        audio_out = None
                 else:
                     transcript = "Mock transcription"
                     advice = mock_fd_advice("FD query")
@@ -339,7 +349,9 @@ if st.session_state.mode == "voice":
                 status_placeholder.empty()
                 st.rerun()
             except Exception as e:
-                status_placeholder.error(f"Error: {e}")
+                st.error(f"Error: {e}")
+                import traceback
+                st.code(traceback.format_exc())
         elif st.session_state.transcript:
             st.markdown(f'''
             <div class="voice-response">
