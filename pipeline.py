@@ -2,7 +2,17 @@ import os
 import json
 import io
 import traceback
+import functools
 from fd_data import FD_OPTIONS
+
+@functools.lru_cache(maxsize=1)
+def _get_cached_client():
+    """Cached Groq client to avoid re-initialization"""
+    from groq import Groq
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not set in environment")
+    return Groq(api_key=api_key, timeout=60)
 
 SYSTEM_PROMPT = """Aap ek helpful FD advisor hain jo Tier 2/3 India ke users ke liye kaam karte hain.
 
@@ -20,12 +30,7 @@ FD Options: {fd_data}
 
 def get_groq_client():
     """Get Groq client with API key"""
-    from groq import Groq
-
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY not set in environment")
-    return Groq(api_key=api_key, timeout=60)
+    return _get_cached_client()
 
 
 def transcribe_audio(audio_bytes: bytes) -> str:

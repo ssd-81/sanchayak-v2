@@ -325,26 +325,27 @@ if st.session_state.mode == "voice":
             key="vrec"
         )
         
-        if audio_bytes and not st.session_state.processing and not st.session_state.current_advice:
-            st.session_state.processing = True
+        if audio_bytes and not st.session_state.current_advice:
+            print("[APP] Processing new audio...")
             with st.spinner("Processing..."):
                 try:
                     if api_key_set:
-                        transcript, advice, audio_out = run_pipeline(audio_bytes, use_gtts=True)
+                        from pipeline import transcribe_audio, get_fd_advice
+                        transcript = transcribe_audio(audio_bytes)
+                        advice = get_fd_advice(transcript)
                     else:
                         transcript = "Mock transcription"
                         advice = mock_fd_advice("FD query")
-                        audio_out = None
                     
-                    st.session_state.processing = False
+                    print(f"[APP] Got advice: {advice[:50]}...")
                     st.session_state.transcript = transcript
                     st.session_state.current_advice = advice
+                    st.rerun()
                 except Exception as e:
-                    st.session_state.processing = False
+                    print(f"[APP] Error: {e}")
                     st.error(f"Error: {str(e)}")
                     st.session_state.transcript = "Error"
                     st.session_state.current_advice = str(e)
-                    audio_out = None
         
         if st.session_state.current_advice:
             st.markdown(f'''
