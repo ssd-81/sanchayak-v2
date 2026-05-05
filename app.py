@@ -308,26 +308,22 @@ st.markdown('<div class="content-area">', unsafe_allow_html=True)
 
 if st.session_state.mode == "voice":
     if not st.session_state.current_advice:
-        st.markdown("""
-        <div class="voice-center">
-            <div class="voice-btn">
-                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H2c0 3.87 3.13 7 7 7s7-3.13 7-7h-1z"/></svg>
-            </div>
-            <div class="voice-hint">Tap to speak</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="voice-center">', unsafe_allow_html=True)
         
-        st.markdown('<div class="voice-recorder">', unsafe_allow_html=True)
         audio_bytes = audio_recorder(
-            text="🎤 Record boliye",
+            text="Tap to record",
             pause_threshold=2.0,
             sample_rate=16000,
             energy_threshold=0.01,
+            icon_name="microphone",
+            icon_size="4x",
+            neutral_color="#10a37f",
+            recording_color="#ff0000",
             key="vrec"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         
         if audio_bytes:
+            st.write(f"DEBUG: Got audio, {len(audio_bytes)} bytes")
             status_placeholder = st.empty()
             status_placeholder.info("Soch raha hoon...")
             try:
@@ -344,7 +340,7 @@ if st.session_state.mode == "voice":
                 st.rerun()
             except Exception as e:
                 status_placeholder.error(f"Error: {e}")
-        else:
+        elif st.session_state.transcript:
             st.markdown(f'''
             <div class="voice-response">
                 <div class="resp-card">
