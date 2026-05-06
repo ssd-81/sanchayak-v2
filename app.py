@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import base64
 from audio_recorder_streamlit import audio_recorder
 from pipeline import run_pipeline, get_fd_advice
 from test_utils import mock_fd_advice
@@ -202,6 +203,12 @@ if "messages" not in st.session_state:
 if "processing" not in st.session_state:
     st.session_state.processing = False
 
+if "pending_audio" not in st.session_state:
+    st.session_state.pending_audio = None
+
+if "voice_key" not in st.session_state:
+    st.session_state.voice_key = 0
+
 # ── Header ──────────────────────────────────────────
 st.markdown("""
 <div class="fd-header">
@@ -224,6 +231,10 @@ for msg in st.session_state.messages:
 
 # ── Voice Mode ──────────────────────────────────────
 if "Voice" in mode:
+    # Initialize voice key if needed
+    if "voice_key" not in st.session_state:
+        st.session_state.voice_key = 0
+
     # Centered mic
     _, mic_col, _ = st.columns([1, 1, 1])
     with mic_col:
@@ -234,19 +245,13 @@ if "Voice" in mode:
             pause_threshold=2.0,
             neutral_color="#ffffff",
             recording_color="#ff4444",
+            key=f"voice_recorder_{st.session_state.voice_key}"
         )
 
     st.markdown('<div class="status-text">Tap to record</div>', unsafe_allow_html=True)
 
     if audio_bytes and len(audio_bytes) > 1000:
-        st.markdown("""
-        <div class="thinking-indicator">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-        """, unsafe_allow_html=True)
-        
+        st.session_state.processing = True
         with st.spinner("सोच रहा हूँ..."):
             try:
                 if api_key_set:
@@ -255,18 +260,35 @@ if "Voice" in mode:
                     transcript = "Mock transcription"
                     advice = mock_fd_advice("FD query")
                     audio_out = None
-
+                
                 st.session_state.messages.append({"role": "user", "content": transcript})
                 st.session_state.messages.append({"role": "assistant", "content": advice})
-                if audio_out:
-                    st.audio(audio_out, format="audio/mp3", autoplay=True)
+                st.session_state.pending_audio = audio_out
+                # Increment key to reset recorder and prevent re-submit
+                st.session_state.voice_key += 1
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
-
+        
         st.rerun()
 
+if st.session_state.pending_audio:
+    # Convert to base64 for reliable autoplay
+    b64_audio = base64.b64encode(st.session_state.pending_audio).decode('utf-8')
+    audio_html = f'''
+    <audio id="responseAudio" autoplay>
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
+    <script>
+        document.getElementById('responseAudio').play().catch(function(e) {{
+            console.log('Autoplay blocked:', e);
+        }});
+    </script>
+    '''
+    st.markdown(audio_html, unsafe_allow_html=True)
+    st.session_state.pending_audio = None
+
 # ── Chat Mode ───────────────────────────────────────
-else:
+elif "Chat" in mode:
     user_input = st.chat_input("Hindi mein likhiye...")
     if user_input:
         with st.spinner("सोच रहा हूँ..."):
