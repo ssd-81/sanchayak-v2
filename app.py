@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 st.set_page_config(
-    page_title="FD Sahayak",
+    page_title="संचायक",
     page_icon="🎙️",
     layout="centered"
 )
@@ -63,14 +63,15 @@ div[data-testid="stStatusWidget"] { display: none !important; }
 
 /* ── Mode Toggle ── */
 div[data-testid="stRadio"] {
-    display: flex;
-    justify-content: center;
+    margin: 0 auto !important;
+    width: fit-content !important;
 }
 
-div[data-testid="stRadio"] > div {
+div[data-testid="stRadio"] > div[role="radiogroup"] {
     display: flex;
     justify-content: center;
-    gap: 4px;
+    align-items: center;
+    gap: 12px;
 }
 
 div[data-testid="stRadio"] label {
@@ -195,7 +196,7 @@ api_key = os.environ.get("GROQ_API_KEY")
 api_key_set = bool(api_key and api_key.strip() and not api_key.startswith("your_"))
 
 if not api_key_set:
-    st.warning("⚠️ API key not set - running in demo mode")
+    st.warning("⚠️ API key nahi milega - demo mode chal raha hai")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -209,18 +210,25 @@ if "pending_audio" not in st.session_state:
 if "voice_key" not in st.session_state:
     st.session_state.voice_key = 0
 
+if "booking_confirmed" not in st.session_state:
+    st.session_state.booking_confirmed = False
+
+if "booking_success" not in st.session_state:
+    st.session_state.booking_success = False
+
+if "success_audio" not in st.session_state:
+    st.session_state.success_audio = None
+
 # ── Header ──────────────────────────────────────────
 st.markdown("""
 <div class="fd-header">
-    <h1>FD Sahayak</h1>
+    <h1>संचायक</h1>
     <p>Hindi mein boliye, FD ke baare mein janiye</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ── Mode Toggle ─────────────────────────────────────
-_, center_col, _ = st.columns([1, 2, 1])
-with center_col:
-    mode = st.radio("", ["🎙️ Voice", "💬 Chat"], horizontal=True, label_visibility="collapsed")
+mode = st.radio("", ["🎙️ Voice", "💬 Chat"], horizontal=True, label_visibility="collapsed")
 
 # ── Conversation ────────────────────────────────────
 for msg in st.session_state.messages:
@@ -252,20 +260,31 @@ if "Voice" in mode:
 
     if audio_bytes and len(audio_bytes) > 1000:
         st.session_state.processing = True
+        
+        # Append user message FIRST (so it's in history for LLM)
+        transcript_placeholder = "Recording..."
+        st.session_state.messages.append({"role": "user", "content": transcript_placeholder})
+        
         with st.spinner("सोच रहा हूँ..."):
             try:
                 if api_key_set:
-                    transcript, advice, audio_out = run_pipeline(audio_bytes)
+                    transcript, advice, audio_out = run_pipeline(audio_bytes, chat_history=st.session_state.messages)
                 else:
                     transcript = "Mock transcription"
                     advice = mock_fd_advice("FD query")
                     audio_out = None
                 
-                st.session_state.messages.append({"role": "user", "content": transcript})
+                # Update the user message with actual transcript
+                st.session_state.messages[-1] = {"role": "user", "content": transcript}
                 st.session_state.messages.append({"role": "assistant", "content": advice})
                 st.session_state.pending_audio = audio_out
                 # Increment key to reset recorder and prevent re-submit
                 st.session_state.voice_key += 1
+                
+                # Check if booking requested - more keywords
+                advice_lower = advice.lower()
+                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija"]):
+                    st.session_state.booking_confirmed = True
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
         
@@ -300,9 +319,63 @@ elif "Chat" in mode:
 
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 st.session_state.messages.append({"role": "assistant", "content": advice})
+                
+                # Check if booking requested - more keywords
+                advice_lower = advice.lower()
+                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija"]):
+                    st.session_state.booking_confirmed = True
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
 
+        st.rerun()
+
+# ── Booking Flow ─────────────────────────────────
+if st.session_state.booking_confirmed and not st.session_state.booking_success:
+    st.markdown("---")
+    aadhaar_input = st.text_input("Aadhaar number enter karein:", max_chars=12, key="aadhaar_input")
+    if aadhaar_input and len(aadhaar_input) == 12:
+        if st.button("Confirm Booking"):
+            st.session_state.booking_success = True
+            success_msg = "Aapka FD booking confirm ho gaya! Shukriya, aapne humari service choose ki. Aapko confirmation SMS milega."
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": success_msg
+            })
+            # Generate TTS for success message
+            if api_key_set:
+                from pipeline import text_to_speech_hindi
+                audio_out = text_to_speech_hindi(success_msg)
+                st.session_state.success_audio = audio_out
+            st.rerun()
+
+# Play success audio
+if st.session_state.booking_success and hasattr(st.session_state, 'success_audio') and st.session_state.success_audio:
+    b64_audio = base64.b64encode(st.session_state.success_audio).decode('utf-8')
+    audio_html = f'''
+    <audio id="successAudio" autoplay>
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
+    <script>
+        document.getElementById('successAudio').play().catch(function(e) {{}});
+    </script>
+    '''
+    st.markdown(audio_html, unsafe_allow_html=True)
+    st.session_state.success_audio = None
+
+# ── Success Screen ─────────────────────────────────
+if st.session_state.booking_success:
+    st.markdown("""
+    <div style="text-align: center; padding: 60px 20px;">
+        <h1 style="font-size: 48px; margin-bottom: 24px;">✅</h1>
+        <h2 style="color: #10a37f; margin-bottom: 16px;">Booking Confirm Ho Gaya!</h2>
+        <p style="color: #888; font-size: 16px;">Aapko confirmation SMS bheja gaya hai</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Naya Sawaal", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.booking_confirmed = False
+        st.session_state.booking_success = False
         st.rerun()
 
 # ── Reset ───────────────────────────────────────────
@@ -311,4 +384,6 @@ if st.session_state.messages:
     with btn_col:
         if st.button("नया सवाल", use_container_width=True):
             st.session_state.messages = []
+            st.session_state.booking_confirmed = False
+            st.session_state.booking_success = False
             st.rerun()

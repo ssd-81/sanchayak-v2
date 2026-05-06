@@ -54,10 +54,12 @@ def mock_transcribe(audio_bytes=None) -> str:
 
 def mock_fd_advice(query: str) -> str:
     return (
-        "SBI: 6.8% rate, 1 lakh पर 6,800 रुपये साल में। "
-        "HDFC Bank: 7.1% rate, 1 lakh पर 7,100 रुपये। "
-        "Bajaj Finance: 8.05% rate, 1 lakh पर 8,050 रुपये। "
-        "Mera suggestion: Bajaj Finance — sabse zyada return."
+        "Ab aapke paas 50,000 rupees hai, toh 1 saal ke liye yeh best options hain:\n\n"
+        "Bajaj Finance se aapko 8.05% se ₹4,025 milenge ek saal mein. "
+        "HDFC Bank se 7.1% se ₹3,550 milenge. "
+        "SBI se 6.8% se ₹3,400 milenge.\n\n"
+        "Mera suggestion: Agar aapko fully safe bank chahiye toh SBI best hai - yeh government backed hai. "
+        "Lekin agar aapka sabse zyada fayda chahiye, toh Bajaj Finance best rahega."
     )
 
 

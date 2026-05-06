@@ -15,27 +15,35 @@ def _get_cached_client():
         raise ValueError("GROQ_API_KEY not set in environment")
     return Groq(api_key=api_key, timeout=60)
 
-SYSTEM_PROMPT = """Aap ek helpful FD (fixed deposit) advisor hain jo Tier 2/3 India ke users ke liye kaam karte hain. Users ke paas byaaj (interest rate), savings, rupaye, aur fd options ke baare mein sawaal ho sakte hain.
 
-Context - Transcription notes:
-- Audio transcript mein common terms hain: FD, fixed deposit, byaaj, rupaye, SBI, HDFC, Bajaj, Aadhaar, savings, hazaar, lakh, saal, sal
-- Users "hazaar" (1000) aur "lakh" (1,00,000) use karte hain amounts ke liye
-- "saal" ya "sal" tenure ke liye use hota hai
+SYSTEM_PROMPT = """Aap (aurat) ek helpful FD advisor hain. Aapke Baal GM ka kaam hai, aapko customers ki madad karni hai. Aapka kaam users ko Hindi mein samjhana hai ki kahaan FD rakhein jo sabse zyada fayda milega.
+
+Context:
+- Users hajar ya हज़ार (1000) aur lakh ya लाख (1,00,000) use karte hain amounts ke liye
+- saal tenure ke liye use hota hai
+- Simple, natural Hindi mein baat karein - jaise aap apni behen ya dost se baat karti hain
+
+IMPORTANT - Hindi Devanagari Script ONLY:
+- rupaye matlab रुपये - DEVANAGARI mein likhein, Angreji script NAHIN
+- Numbers bhi Hindi mein likhein: 50,000 -> 50,000 YA 50 हज़ार
+- Koi bhi Angreji word bilkul mat use karein - pura Hindi mein baat karein
+
+Aapki pehchan - feminine:
+- Main aapki madad kar sakti hoon
+- Mere hisab se...
+- Mera suggestion...
 
 Rules:
-- Hamesha simple Hindi mein baat karein. Koi English jargon nahi.
-- PEHLE AMOUNT AUR TENURE SAMJHO - Jab user kuch amount aur tenure bataye (jaise "5 lakh 2 saal ke liye"), toh AISHI KE BAD TURANT recommend banks.
-- Agar user sirf amount bataye, toh pucho "Kitne saal ke liye?"
-- Agar user sirf tenure bataye, toh pucho "Kitna amount invest karna chahte ho?"
-- Jab amount + tenure dono mil jayein, toh WAHEIN BEST BANKS RECOMMEND KAREIN - user se poochne ki zaroorat nahi.
-- FD options mein se highest rate wale top 2-3 banks recommend karein.
-- Jab options batayein: bank ka naam, byaaj dar (%), aur interest amount clearly batayein.
-- Amounts ko lakh/hazaar mein explain karein (jaise: "1 lakh pe 7.5% se ₹7,500 milega ek saal mein").
-- Ek recommendation zaroor dein agar options bata rahe ho.
-- Jawab EXTREMELY chota (sirf 1 ya 2 lines, max 30 words), crisp aur to-the-point hona chahiye kyunki yeh voice output ke liye hai. Lambe messages bilkul mat bhejein.
-- Agar user booking karna chahta hai, kahein: "Booking ke liye aapka Aadhaar number chahiye."
+- PURE HINDI DEVNAGARI - Har ek shabd Hindi mein. Romanized Hindi ya English bilkul NAHIN.
+- Jab user KOI OPTION SELECT kare, toh TURANT booking start karein: Booking confirm karne ke liye aapka 12-digit Aadhaar number batayein.
+- Jab user amount aur tenure BATAYE, toh options BATAYEIN aur recommend karein
+- Agar user sirf amount bataye, toh poocho Kitne saal ke liye?
+- Agar user sirf tenure bataye, toh poocho Kitna amount rakhna chahti ho?
+- EK simple recommendation ZAROOR DEIN - kis bank mein rakhe yeh sabse accha rahega
+- Jawab natural, conversational hona chahiye - maximum 2-3 sentences.
+- Agar user booking karna chahti hai, toh kahein Booking ke liye aapka Aadhaar number chahiye hoga.
 
-FD Options: {fd_data}
+FD Options (yeh data use karein): {fd_data}
 """
 
 
@@ -45,7 +53,7 @@ def get_groq_client():
 
 
 def transcribe_audio(audio_bytes: bytes) -> str:
-    """Hindi audio bytes → Hindi text via Groq Whisper"""
+    """Hindi audio bytes to Hindi text via Groq Whisper"""
     client = get_groq_client()
     
     # Streamlit audio_recorder returns a valid WAV file out of the box.
@@ -55,13 +63,13 @@ def transcribe_audio(audio_bytes: bytes) -> str:
         model="whisper-large-v3-turbo",
         language="hi",
         response_format="text",
-        prompt="Fixed deposit, FD, Bank, Interest rate, Byaaj dar, Tenure, Amount, Lakh, HDFC, SBI, Bajaj Finance" # Helps with domain-specific terms
+        prompt="Fixed deposit, FD, Bank, Interest rate, Byaaj dar, Tenure, Amount, Lakh, HDFC, SBI, Bajaj Finance"
     )
     return transcription
 
 
 def get_fd_advice(user_query: str, chat_history: list = None) -> str:
-    """Hindi text → Hindi FD advice via Groq LLM"""
+    """Hindi text to Hindi FD advice via Groq LLM"""
     if chat_history is None:
         chat_history = []
         
@@ -92,13 +100,13 @@ def get_fd_advice(user_query: str, chat_history: list = None) -> str:
 
 
 def text_to_speech_google(text: str) -> bytes:
-    """Hindi text → Hindi audio bytes via Google Cloud TTS"""
+    """Hindi text to Hindi audio bytes via Google Cloud TTS"""
     from google.cloud import texttospeech
 
     tts_client = texttospeech.TextToSpeechClient()
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
-        language_code="hi-IN", name="hi-IN-Wavenet-D"
+        language_code="hi-IN", name="hi-IN-Wavenet-A"
     )
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.MP3
@@ -110,7 +118,7 @@ def text_to_speech_google(text: str) -> bytes:
 
 
 def text_to_speech_gtts(text: str) -> bytes:
-    """Hindi text → Hindi audio bytes via gTTS (fallback)"""
+    """Hindi text to Hindi audio bytes via gTTS (fallback)"""
     from gtts import gTTS
 
     tts = gTTS(text=text, lang="hi", slow=False)
@@ -120,7 +128,7 @@ def text_to_speech_gtts(text: str) -> bytes:
 
 
 def text_to_speech_hindi(text: str, use_gtts: bool = False) -> bytes:
-    """Hindi text → Hindi audio bytes. Try Google first, fallback to gTTS."""
+    """Hindi text to Hindi audio bytes. Try Google first, fallback to gTTS."""
     if use_gtts:
         return text_to_speech_gtts(text)
     try:
@@ -129,12 +137,12 @@ def text_to_speech_hindi(text: str, use_gtts: bool = False) -> bytes:
         return text_to_speech_gtts(text)
 
 
-def run_pipeline(audio_bytes: bytes, use_gtts: bool = False):
-    """Full loop: audio → transcript → advice → speech"""
+def run_pipeline(audio_bytes: bytes, chat_history: list = None, use_gtts: bool = False):
+    """Full loop: audio to transcript to advice to speech"""
     print(f"[PIPELINE] Audio received: {len(audio_bytes)} bytes")
     transcript = transcribe_audio(audio_bytes)
     print(f"[PIPELINE] Transcript: {transcript[:50]}...")
-    advice = get_fd_advice(transcript)
+    advice = get_fd_advice(transcript, chat_history=chat_history)
     print(f"[PIPELINE] Advice: {advice[:50]}...")
     audio_out = text_to_speech_hindi(advice, use_gtts=use_gtts)
     print(f"[PIPELINE] Audio out: {len(audio_out)} bytes")
