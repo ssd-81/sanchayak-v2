@@ -256,12 +256,6 @@ div[data-testid="stChatInput"] {
     max-width: 480px;
     margin: 0 auto;
 }
-
-/* ── Ring Animation ── */
-@keyframes ringPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -308,12 +302,6 @@ if "user_amount" not in st.session_state:
 if "user_tenure" not in st.session_state:
     st.session_state.user_tenure = 2
 
-if "call_started" not in st.session_state:
-    st.session_state.call_started = False
-
-if "intro_shown" not in st.session_state:
-    st.session_state.intro_shown = False
-
 # ── Header ──────────────────────────────────────────
 st.markdown("""
 <div class="fd-header">
@@ -321,66 +309,6 @@ st.markdown("""
     <p>Hindi mein boliye, FD ke baare mein janiye</p>
 </div>
 """, unsafe_allow_html=True)
-
-# ── Call Button (before mic) ─────────────────────────────
-if st.session_state.mode == "voice":
-    _, call_btn_col, _ = st.columns([1, 1, 1])
-    with call_btn_col:
-        if st.button("📞 कॉल करें", key="call_btn", use_container_width=True):
-            st.session_state.call_started = True
-            st.rerun()
-
-# Show ringing before connecting
-if st.session_state.call_started and not st.session_state.intro_shown:
-    st.markdown('''
-    <div style="text-align: center; padding: 40px;">
-        <div style="font-size: 60px; animation: ringPulse 1s infinite;">📞</div>
-        <p style="color: #666; margin-top: 16px;">कॉल कनेक्ट हो रहा है...</p>
-    </div>
-    <script>
-    (function() {
-        try {
-            var ctx = new (window.AudioContext || window.webkitAudioContext)();
-            var now = ctx.currentTime;
-            for(var i=0; i<3; i++) {
-                var osc = ctx.createOscillator();
-                var gain = ctx.createGain();
-                osc.type = "sine";
-                osc.frequency.value = 440 + (i*40);
-                gain.gain.value = 0.1;
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(now + i*0.6);
-                osc.stop(now + i*0.6 + 0.3);
-            }
-        } catch(e) {}
-    })();
-    setTimeout(function(){ window.location.reload(); }, 2500);
-    </script>
-    ''', unsafe_allow_html=True)
-    st.stop()
-
-# Show intro after ring
-if st.session_state.call_started and not st.session_state.intro_shown:
-    intro_text = "नमस्ते! संचायक में आपका स्वागत है। मैं आपकी FD सलाहकार हूँ। बताइए, मैं आपकी कैसे मदद कर सकती हूँ?"
-    st.session_state.messages.append({"role": "assistant", "content": intro_text})
-    
-    if api_key_set:
-        from pipeline import text_to_speech_hindi
-        try:
-            intro_audio = text_to_speech_hindi(intro_text)
-            b64 = base64.b64encode(intro_audio).decode()
-            st.markdown(f'''
-            <audio id="introAudio" autoplay>
-                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-            </audio>
-            ''', unsafe_allow_html=True)
-        except:
-            pass
-    
-    st.session_state.intro_shown = True
-    st.session_state.call_started = False
-    st.rerun()
 
 # ── Mode Toggle ─────────────────────────────────────
 col_v, col_c = st.columns(2, gap="small")
@@ -600,8 +528,6 @@ if st.session_state.booking_success:
         st.session_state.booking_success = False
         st.session_state.show_fd_options = False
         st.session_state.selected_fd = None
-        st.session_state.call_started = False
-        st.session_state.intro_shown = False
         st.rerun()
 
 # ── Reset ───────────────────────────────────────────
