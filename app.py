@@ -373,6 +373,15 @@ if "Voice" in mode:
                 st.session_state.pending_audio = audio_out
                 # Increment key to reset recorder and prevent re-submit
                 st.session_state.voice_key += 1
+                
+                # Trigger FD options AFTER message shown
+                if any(word in advice for word in ["विकल्प", "चुनना", "चुनें", "चुनिए", "मिलेगा", "ब्याज"]):
+                    st.session_state.show_fd_options = True
+                
+                # Check booking - AFTER message shown
+                advice_lower = advice.lower()
+                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija", "आधार", "बुकिंग", "कन्फर्म"]):
+                    st.session_state.booking_confirmed = True
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
         
@@ -411,6 +420,11 @@ elif "Chat" in mode:
                 # Trigger FD options AFTER message is shown
                 if any(word in advice for word in ["विकल्प", "सुझाव", "रखे"]):
                     st.session_state.show_fd_options = True
+                
+                # Check booking - AFTER message shown
+                advice_lower = advice.lower()
+                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija", "आधार", "बुकिंग", "कन्फर्म"]):
+                    st.session_state.booking_confirmed = True
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
 
