@@ -6,9 +6,10 @@ from pipeline import run_pipeline, get_fd_advice
 from test_utils import mock_fd_advice
 from fd_data import FD_OPTIONS
 from dotenv import load_dotenv
+import pathlib
 
-load_dotenv()
-load_dotenv(".env")
+env_path = pathlib.Path(__file__).parent / ".env"
+load_dotenv(env_path)
 
 st.set_page_config(
     page_title="संचायक",
