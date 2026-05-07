@@ -407,12 +407,14 @@ elif "Chat" in mode:
 
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 st.session_state.messages.append({"role": "assistant", "content": advice})
+                
+                # Trigger FD options AFTER message is shown
+                if any(word in advice for word in ["विकल्प", "सुझाव", "रखे"]):
+                    st.session_state.show_fd_options = True
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
 
         st.rerun()
-
-# ── FD Option Cards ─────────────────────────────────
 
 # ── FD Option Cards ─────────────────────────────────
 if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
