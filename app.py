@@ -554,7 +554,7 @@ if st.session_state.booking_success and hasattr(st.session_state, 'success_audio
 if st.session_state.booking_success:
     st.markdown("""
     <div style="text-align: center; padding: 40px 20px;">
-        <h2 style="color: #4ade80; margin-bottom: 8px;">बुकिंग कन्फर्म! ✅</h2>
+        <h2 style="color: #4ade80; margin-bottom: 8px;">बुकिंग कन्फर्म!</h2>
         <p style="color: #666; font-size: 14px;">कन्फर्मेशन एसएमएस भेज दिया गया</p>
     </div>
     """, unsafe_allow_html=True)
