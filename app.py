@@ -1,3 +1,9 @@
+import streamlit as st
+import os
+import base64
+from audio_recorder_streamlit import audio_recorder
+from pipeline import run_pipeline, get_fd_advice
+from test_utils import mock_fd_advice
 from fd_data import FD_OPTIONS
 from dotenv import load_dotenv
 
@@ -75,7 +81,71 @@ div[data-testid="stButton"] button:hover {
     color: #ccc !important;
 }
 
-/* ── Booking Flow ──── */
+/* ── FD Option Cards ── */
+.fd-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0;
+}
+
+.fd-card {
+    background: #151520;
+    border: 1px solid #2a2a3a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.fd-card:hover {
+    border-color: #4a6a4a;
+    background: #1a2020;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.fd-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.fd-card-bank {
+    font-size: 17px;
+    font-weight: 700;
+    color: #e0e0e0;
+}
+
+.fd-card-rate {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4ade80;
+}
+
+.fd-card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fd-card-interest {
+    font-size: 13px;
+    color: #888;
+}
+
+.fd-card-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #1a2e1a;
+    color: #4ade80;
+    border: 1px solid #2a4a2a;
+    font-weight: 600;
+}
 
 /* Force horizontal layout for columns at all widths */
 div[data-testid="stColumns"] {
@@ -220,6 +290,234 @@ if "success_audio" not in st.session_state:
 if "mode" not in st.session_state:
     st.session_state.mode = "voice"
 
+if "show_fd_options" not in st.session_state:
+    st.session_state.show_fd_options = False
+
+if "selected_fd" not in st.session_state:
+    st.session_state.selected_fd = None
+
+if "user_amount" not in st.session_state:
+    st.session_state.user_amount = 50000
+
+if "user_tenure" not in st.session_state:
+    st.session_state.user_tenure = 2
+
+# ── Header ──────────────────────────────────────────
+st.markdown("""
+<div class="fd-header">
+    <h1>संचायक</h1>
+    <p>Hindi mein boliye, FD ke baare mein janiye</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Mode Toggle ─────────────────────────────────────
+col_v, col_c = st.columns(2, gap="small")
+with col_v:
+    if st.button("🎙️ Voice", key="mode_voice", use_container_width=True):
+        st.session_state.mode = "voice"
+        st.rerun()
+with col_c:
+    if st.button("💬 Chat", key="mode_chat", use_container_width=True):
+        st.session_state.mode = "chat"
+        st.rerun()
+
+mode = "Voice" if st.session_state.mode == "voice" else "Chat"
+
+# ── Conversation ────────────────────────────────────
+for msg in st.session_state.messages:
+    if msg["role"] == "user":
+        st.markdown(f'<div class="bubble-user">🎤 {msg["content"]}</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="bubble-bot">{msg["content"]}</div>', unsafe_allow_html=True)
+
+# ── Voice Mode ──────────────────────────────────────
+if "Voice" in mode:
+    # Initialize voice key if needed
+    if "voice_key" not in st.session_state:
+        st.session_state.voice_key = 0
+
+    # Centered mic
+    _, mic_col, _ = st.columns([1, 1, 1])
+    with mic_col:
+        audio_bytes = audio_recorder(
+            text="",
+            icon_size="3x",
+            sample_rate=16000,
+            pause_threshold=2.0,
+            neutral_color="#ffffff",
+            recording_color="#ff4444",
+            key=f"voice_recorder_{st.session_state.voice_key}"
+        )
+
+    st.markdown('<div class="status-text">Tap to record</div>', unsafe_allow_html=True)
+
+    if audio_bytes and len(audio_bytes) > 1000:
+        st.session_state.processing = True
+        
+        # Append user message FIRST (so it's in history for LLM)
+        transcript_placeholder = "Recording..."
+        st.session_state.messages.append({"role": "user", "content": transcript_placeholder})
+        
+        with st.spinner("सोच रहा हूँ..."):
+            try:
+                if api_key_set:
+                    transcript, advice, audio_out = run_pipeline(audio_bytes, chat_history=st.session_state.messages)
+                else:
+                    transcript = "Mock transcription"
+                    advice = mock_fd_advice("FD query")
+                    audio_out = None
+                
+                # Update the user message with actual transcript
+                st.session_state.messages[-1] = {"role": "user", "content": transcript}
+                st.session_state.messages.append({"role": "assistant", "content": advice})
+                st.session_state.pending_audio = audio_out
+                # Increment key to reset recorder and prevent re-submit
+                st.session_state.voice_key += 1
+                
+                # Check if LLM is presenting options (amount + tenure detected)
+                if any(word in advice for word in ["विकल्प", "चुनना", "चुनें", "चुनिए", "मिलेगा", "ब्याज"]):
+                    st.session_state.show_fd_options = True
+                
+                # Check if booking requested - more keywords
+                advice_lower = advice.lower()
+                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija", "आधार", "बुकिंग", "कन्फर्म"]):
+                    st.session_state.booking_confirmed = True
+            except Exception as e:
+                st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
+        
+        st.rerun()
+
+if st.session_state.pending_audio:
+    # Convert to base64 for reliable autoplay
+    b64_audio = base64.b64encode(st.session_state.pending_audio).decode('utf-8')
+    audio_html = f'''
+    <audio id="responseAudio" autoplay>
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
+    <script>
+        document.getElementById('responseAudio').play().catch(function(e) {{
+            console.log('Autoplay blocked:', e);
+        }});
+    </script>
+    '''
+    st.markdown(audio_html, unsafe_allow_html=True)
+    st.session_state.pending_audio = None
+
+# ── Chat Mode ───────────────────────────────────────
+elif "Chat" in mode:
+    user_input = st.chat_input("Hindi mein likhiye...")
+    if user_input:
+        with st.spinner("सोच रहा हूँ..."):
+            try:
+                if api_key_set:
+                    advice = get_fd_advice(user_input, chat_history=st.session_state.messages)
+                else:
+                    advice = mock_fd_advice(user_input)
+
+                st.session_state.messages.append({"role": "user", "content": user_input})
+                st.session_state.messages.append({"role": "assistant", "content": advice})
+                
+                # Check if LLM is presenting options (amount + tenure detected)
+                if any(word in advice for word in ["विकल्प", "चुनना", "चुनें", "चुनिए", "मिलेगा", "ब्याज"]):
+                    st.session_state.show_fd_options = True
+                
+                # Check if booking requested - more keywords
+                advice_lower = advice.lower()
+                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija", "आधार", "बुकिंग", "कन्फर्म"]):
+                    st.session_state.booking_confirmed = True
+            except Exception as e:
+                st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
+
+        st.rerun()
+
+# ── FD Option Cards ─────────────────────────────────
+if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
+    amount = st.session_state.user_amount
+    tenure = st.session_state.user_tenure
+    
+    st.markdown('<div class="fd-cards-container">', unsafe_allow_html=True)
+    
+    # Find highest rate for badge
+    max_rate = max(fd["rate"] for fd in FD_OPTIONS)
+    
+    for i, fd in enumerate(FD_OPTIONS):
+        interest = round(amount * fd["rate"] / 100 * tenure)
+        badge_html = '<span class="fd-card-badge">सर्वोत्तम</span>' if fd["rate"] == max_rate else ""
+        
+        st.markdown(f'''
+        <div class="fd-card" id="fd-card-{i}">
+            <div class="fd-card-header">
+                <span class="fd-card-bank">{fd["bank"]}</span>
+                <span class="fd-card-rate">{fd["rate"]}%</span>
+            </div>
+            <div class="fd-card-details">
+                <span class="fd-card-interest">अनुमानित ब्याज: ₹{interest:,} ({tenure} साल)</span>
+                {badge_html}
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        if st.button(f"{fd['bank']} चुनें", key=f"select_fd_{i}", use_container_width=True):
+            st.session_state.selected_fd = fd
+            st.session_state.show_fd_options = False
+            st.session_state.booking_confirmed = True
+            selected_msg = f"आपने {fd['bank']} को चुना है ({fd['rate']}% ब्याज दर)। अब बुकिंग के लिए अपना 12-अंकों का आधार नंबर बताएं।"
+            st.session_state.messages.append({"role": "assistant", "content": selected_msg})
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ── Booking Flow ─────────────────────────────────
+if st.session_state.booking_confirmed and not st.session_state.booking_success:
+    st.markdown("---")
+    aadhaar_input = st.text_input("अपना 12-अंकों का आधार नंबर दर्ज करें:", max_chars=12, key="aadhaar_input")
+    if aadhaar_input and len(aadhaar_input) == 12:
+        if st.button("बुकिंग कन्फर्म करें"):
+            st.session_state.booking_success = True
+            success_msg = "आपका एफडी बुकिंग कन्फर्म हो गया है! हमारी सर्विस चुनने के लिए शुक्रिया। आपको कन्फर्मेशन एसएमएस मिल जाएगा।"
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": success_msg
+            })
+            # Generate TTS for success message
+            if api_key_set:
+                from pipeline import text_to_speech_hindi
+                audio_out = text_to_speech_hindi(success_msg)
+                st.session_state.success_audio = audio_out
+            st.rerun()
+
+# Play success audio
+if st.session_state.booking_success and hasattr(st.session_state, 'success_audio') and st.session_state.success_audio:
+    b64_audio = base64.b64encode(st.session_state.success_audio).decode('utf-8')
+    audio_html = f'''
+    <audio id="successAudio" autoplay>
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
+    <script>
+        document.getElementById('successAudio').play().catch(function(e) {{}});
+    </script>
+    '''
+    st.markdown(audio_html, unsafe_allow_html=True)
+    st.session_state.success_audio = None
+
+# ── Success Screen ─────────────────────────────────
+if st.session_state.booking_success:
+    st.markdown("""
+    <div style="text-align: center; padding: 60px 20px;">
+        <h1 style="font-size: 48px; margin-bottom: 24px;">✅</h1>
+        <h2 style="color: #10a37f; margin-bottom: 16px;">बुकिंग कन्फर्म हो गई!</h2>
+        <p style="color: #888; font-size: 16px;">आपको कन्फर्मेशन एसएमएस भेज दिया गया है</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("नया सवाल", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.booking_confirmed = False
+        st.session_state.booking_success = False
+        st.session_state.show_fd_options = False
+        st.session_state.selected_fd = None
+        st.rerun()
+
 # ── Reset ───────────────────────────────────────────
 if st.session_state.messages:
     _, btn_col, _ = st.columns([1, 1, 1])
@@ -228,4 +526,6 @@ if st.session_state.messages:
             st.session_state.messages = []
             st.session_state.booking_confirmed = False
             st.session_state.booking_success = False
+            st.session_state.show_fd_options = False
+            st.session_state.selected_fd = None
             st.rerun()
