@@ -85,15 +85,15 @@ div[data-testid="stButton"] button:hover {
 .fd-cards-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px 0;
+    gap: 8px;
+    padding: 8px 0;
 }
 
 .fd-card {
     background: #151520;
     border: 1px solid #2a2a3a;
-    border-radius: 14px;
-    padding: 16px 20px;
+    border-radius: 10px;
+    padding: 10px 14px;
     cursor: pointer;
     transition: all 0.25s ease;
     position: relative;
@@ -107,6 +107,11 @@ div[data-testid="stButton"] button:hover {
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
+.fd-card[data-selected="true"] {
+    border-color: #4ade80;
+    background: #1a2e1a;
+}
+
 .fd-card-header {
     display: flex;
     justify-content: space-between;
@@ -115,13 +120,13 @@ div[data-testid="stButton"] button:hover {
 }
 
 .fd-card-bank {
-    font-size: 17px;
+    font-size: 14px;
     font-weight: 700;
     color: #e0e0e0;
 }
 
 .fd-card-rate {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 700;
     color: #4ade80;
 }
@@ -130,10 +135,11 @@ div[data-testid="stButton"] button:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 4px;
 }
 
 .fd-card-interest {
-    font-size: 13px;
+    font-size: 11px;
     color: #888;
 }
 
@@ -400,19 +406,8 @@ if "Voice" in mode:
         st.rerun()
 
 if st.session_state.pending_audio:
-    # Convert to base64 for reliable autoplay
-    b64_audio = base64.b64encode(st.session_state.pending_audio).decode('utf-8')
-    audio_html = f'''
-    <audio id="responseAudio" autoplay>
-        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
-    </audio>
-    <script>
-        document.getElementById('responseAudio').play().catch(function(e) {{
-            console.log('Autoplay blocked:', e);
-        }});
-    </script>
-    '''
-    st.markdown(audio_html, unsafe_allow_html=True)
+    # Try Streamlit's native audio player first - more reliable
+    st.audio(st.session_state.pending_audio, format="audio/mp3")
     st.session_state.pending_audio = None
 
 # ── Chat Mode ───────────────────────────────────────
@@ -449,15 +444,35 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
     
     st.markdown('<div class="fd-cards-container">', unsafe_allow_html=True)
     
-    # Find highest rate for badge
-    max_rate = max(fd["rate"] for fd in FD_OPTIONS)
+    # Sort by rate descending and take top 3
+    sorted_options = sorted(FD_OPTIONS, key=lambda x: x["rate"], reverse=True)[:3]
     
-    for i, fd in enumerate(FD_OPTIONS):
+    # Radio selection (inline with cards)
+    selection = st.radio(
+        "Choose bank:",
+        options=[i for i in range(len(sorted_options))],
+        format_func=lambda i: f"{sorted_options[i]['bank']} @ {sorted_options[i]['rate']}%",
+        label_visibility="collapsed",
+        key="fd_radio_selection",
+        horizontal=True
+    )
+
+    # Process selection
+    if selection is not None:
+        fd = sorted_options[selection]
+        st.session_state.selected_fd = fd
+        st.session_state.show_fd_options = False
+        st.session_state.booking_confirmed = True
+        selected_msg = f"आपने {fd['bank']} को चुना है ({fd['rate']}% ब्याज दर)। अब बुकिंग के लिए अपना 12-अंकों का आधार नंबर बताएं।"
+        st.session_state.messages.append({"role": "assistant", "content": selected_msg})
+        st.rerun()
+
+    for i, fd in enumerate(sorted_options):
         interest = round(amount * fd["rate"] / 100 * tenure)
-        badge_html = '<span class="fd-card-badge">सर्वोत्तम</span>' if fd["rate"] == max_rate else ""
+        badge_html = '<span class="fd-card-badge">सर्वोत्तम</span>' if i == 0 else ""
         
         st.markdown(f'''
-        <div class="fd-card" id="fd-card-{i}">
+        <div class="fd-card" data-index="{i}">
             <div class="fd-card-header">
                 <span class="fd-card-bank">{fd["bank"]}</span>
                 <span class="fd-card-rate">{fd["rate"]}%</span>
@@ -468,14 +483,6 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
             </div>
         </div>
         ''', unsafe_allow_html=True)
-        
-        if st.button(f"{fd['bank']} चुनें", key=f"select_fd_{i}", use_container_width=True):
-            st.session_state.selected_fd = fd
-            st.session_state.show_fd_options = False
-            st.session_state.booking_confirmed = True
-            selected_msg = f"आपने {fd['bank']} को चुना है ({fd['rate']}% ब्याज दर)। अब बुकिंग के लिए अपना 12-अंकों का आधार नंबर बताएं।"
-            st.session_state.messages.append({"role": "assistant", "content": selected_msg})
-            st.rerun()
 
     st.markdown('</div>')
 
