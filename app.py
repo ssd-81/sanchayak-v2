@@ -307,6 +307,12 @@ if "user_amount" not in st.session_state:
 if "user_tenure" not in st.session_state:
     st.session_state.user_tenure = 2
 
+if "otp_generated" not in st.session_state:
+    st.session_state.otp_generated = None
+
+if "otp_verified" not in st.session_state:
+    st.session_state.otp_verified = False
+
 # ── Header ──────────────────────────────────────────
 st.markdown("""
 <div class="fd-header">
@@ -495,20 +501,40 @@ if st.session_state.booking_confirmed and not st.session_state.booking_success:
     st.markdown("---")
     aadhaar_input = st.text_input("अपना 12-अंकों का आधार नंबर दर्ज करें:", max_chars=12, key="aadhaar_input")
     if aadhaar_input and len(aadhaar_input) == 12:
-        if st.button("बुकिंग कन्फर्म करें"):
-            st.session_state.booking_success = True
-            success_msg = "आपका एफडी बुकिंग कन्फर्म हो गया है! हमारी सर्विस चुनने के लिए शुक्रिया। आपको कन्फर्मेशन एसएमएस मिल जाएगा।"
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": success_msg
-            })
-            # Generate TTS for success message
-            if api_key_set:
-                with st.spinner("🤔 सोच रहा हूं..."):
-                    from pipeline import text_to_speech_hindi
-                    audio_out = text_to_speech_hindi(success_msg)
-                    st.session_state.success_audio = audio_out
-            st.rerun()
+        if st.button("OTP भेजें", key="send_otp"):
+            import random
+            st.session_state.otp_generated = str(random.randint(100000, 999999))
+            st.markdown(f"""
+            <div style="background: #1a2e1a; border: 1px solid #2a4a2a; border-radius: 12px; padding: 16px; margin: 12px 0; text-align: center;">
+                <p style="color: #888; font-size: 13px; margin-bottom: 8px;">आपका OTP है:</p>
+                <h2 style="color: #4ade80; font-size: 32px; letter-spacing: 8px; margin: 0;">{st.session_state.otp_generated}</h2>
+                <p style="color: #666; font-size: 12px; margin-top: 8px;">(यह केवल डेमो के लिए है)</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        if st.session_state.otp_generated:
+            st.markdown('<div style="margin-top: 12px;"></div>', unsafe_allow_html=True)
+            otp_input = st.text_input("अपना 6-अंकों का OTP दर्ज करें:", max_chars=6, key="otp_input")
+            if otp_input and len(otp_input) == 6:
+                if st.button("OTP वेरीफाई करें", key="verify_otp"):
+                    if otp_input == st.session_state.otp_generated:
+                        st.session_state.otp_verified = True
+                        st.session_state.booking_success = True
+                        success_msg = "आपका एफडी बुकिंग कन्फर्म हो गया है! हमारी सर्विस चुनने के लिए शुक्रिया। आपको कन्फर्मेशन एसएमएस मिल जाएगा।"
+                        st.session_state.messages.append({
+                            "role": "assistant", 
+                            "content": success_msg
+                        })
+                        if api_key_set:
+                            with st.spinner("🤔 सोच रहा हूं..."):
+                                from pipeline import text_to_speech_hindi
+                                audio_out = text_to_speech_hindi(success_msg)
+                                st.session_state.success_audio = audio_out
+                        st.session_state.otp_generated = None
+                        st.session_state.otp_verified = False
+                        st.rerun()
+                    else:
+                        st.error("गलत OTP! कृपया सही OTP दर्ज करें।")
 
 # Play success audio
 if st.session_state.booking_success and hasattr(st.session_state, 'success_audio') and st.session_state.success_audio:
@@ -540,6 +566,8 @@ if st.session_state.booking_success:
         st.session_state.show_fd_options = False
         st.session_state.selected_fd = None
         st.session_state.selection_audio = None
+        st.session_state.otp_generated = None
+        st.session_state.otp_verified = False
         st.rerun()
 
 # ── Reset ───────────────────────────────────────────
@@ -553,4 +581,6 @@ if st.session_state.messages:
             st.session_state.show_fd_options = False
             st.session_state.selected_fd = None
             st.session_state.selection_audio = None
+            st.session_state.otp_generated = None
+            st.session_state.otp_verified = False
             st.rerun()
