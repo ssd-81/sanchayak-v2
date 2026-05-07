@@ -1,5 +1,6 @@
 groq
 google-cloud-texttospeech
+google-auth
 streamlit
 audio-recorder-streamlit
 python-dotenv
