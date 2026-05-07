@@ -339,6 +339,18 @@ if "Voice" in mode:
     # Centered mic
     _, mic_col, _ = st.columns([1, 1, 1])
     with mic_col:
+        # JavaScript to stop any playing audio when mic is clicked
+        st.markdown("""
+        <script>
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'IFRAME' || e.target.closest('[data-testid="stWebComponent"]')) {
+                var audios = document.querySelectorAll('audio');
+                audios.forEach(function(a) { a.pause(); a.currentTime = 0; });
+            }
+        });
+        </script>
+        """, unsafe_allow_html=True)
+        
         audio_bytes = audio_recorder(
             text="",
             icon_size="3x",
