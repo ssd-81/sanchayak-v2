@@ -406,8 +406,14 @@ if "Voice" in mode:
         st.rerun()
 
 if st.session_state.pending_audio:
-    # Try Streamlit's native audio player first - more reliable
-    st.audio(st.session_state.pending_audio, format="audio/mp3")
+    # Convert to base64 for autoplay
+    b64_audio = base64.b64encode(st.session_state.pending_audio).decode('utf-8')
+    audio_html = f'''
+    <audio id="responseAudio" autoplay>
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
+    '''
+    st.markdown(audio_html, unsafe_allow_html=True)
     st.session_state.pending_audio = None
 
 # ── Chat Mode ───────────────────────────────────────
