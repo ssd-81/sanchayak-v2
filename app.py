@@ -278,7 +278,7 @@ if "pending_audio" not in st.session_state:
     st.session_state.pending_audio = None
 
 if "voice_key" not in st.session_state:
-    st.session_state.voice_key = 0
+    st.session_state.voice_key = 1
 
 if "booking_confirmed" not in st.session_state:
     st.session_state.booking_confirmed = False
@@ -374,11 +374,10 @@ if "Voice" in mode:
     if audio_bytes and len(audio_bytes) > 1000:
         st.session_state.processing = True
         
-        # Append user message FIRST (so it's in history for LLM)
         transcript_placeholder = "रिकॉर्डिंग..."
         st.session_state.messages.append({"role": "user", "content": transcript_placeholder})
         
-        with st.spinner("सोच रहा हूँ..."):
+        with st.spinner("सोच रही हूँ..."):
             try:
                 if api_key_set:
                     transcript, advice, audio_out = run_pipeline(audio_bytes, chat_history=st.session_state.messages)
@@ -387,18 +386,14 @@ if "Voice" in mode:
                     advice = mock_fd_advice("FD query")
                     audio_out = None
                 
-                # Update the user message with actual transcript
                 st.session_state.messages[-1] = {"role": "user", "content": transcript}
                 st.session_state.messages.append({"role": "assistant", "content": advice})
                 st.session_state.pending_audio = audio_out
-                # Increment key to reset recorder and prevent re-submit
                 st.session_state.voice_key += 1
                 
-                # Trigger FD options AFTER message shown
                 if any(word in advice for word in ["विकल्प", "चुनना", "चुनें", "चुनिए", "मिलेगा", "ब्याज"]):
                     st.session_state.show_fd_options = True
                 
-                # Check booking - AFTER message shown
                 advice_lower = advice.lower()
                 if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija", "आधार", "बुकिंग", "कन्फर्म"]):
                     st.session_state.booking_confirmed = True
@@ -427,7 +422,7 @@ if st.session_state.pending_audio:
 elif "Chat" in mode:
     user_input = st.chat_input("हिंदी में लिखिए...")
     if user_input:
-        with st.spinner("सोच रहा हूँ..."):
+        with st.spinner("सोच रही हूँ..."):
             try:
                 if api_key_set:
                     advice = get_fd_advice(user_input, chat_history=st.session_state.messages)
@@ -476,7 +471,7 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
             selected_msg = f"आपने {fd['bank']} को चुना है ({fd['rate']}% ब्याज दर)। अब बुकिंग के लिए अपना 12-अंकों का आधार नंबर बताएं।"
             st.session_state.messages.append({"role": "assistant", "content": selected_msg})
             if api_key_set:
-                with st.spinner("🤔 सोच रहा हूं..."):
+                with st.spinner("🤔 सोच रही हूं..."):
                     from pipeline import text_to_speech_hindi
                     audio_out = text_to_speech_hindi(selected_msg)
                     st.session_state.selection_audio = audio_out
@@ -526,7 +521,7 @@ if st.session_state.booking_confirmed and not st.session_state.booking_success:
                             "content": success_msg
                         })
                         if api_key_set:
-                            with st.spinner("🤔 सोच रहा हूं..."):
+                            with st.spinner("🤔 सोच रही हूं..."):
                                 from pipeline import text_to_speech_hindi
                                 audio_out = text_to_speech_hindi(success_msg)
                                 st.session_state.success_audio = audio_out
