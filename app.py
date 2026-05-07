@@ -48,7 +48,7 @@ div[data-testid="stStatusWidget"] { display: none !important; }
 }
 
 .fd-header h1 {
-    font-size: 32px;
+    font-size: 48px;
     font-weight: 700;
     color: #ffffff;
     margin: 0 0 8px 0;
@@ -287,6 +287,9 @@ if "booking_success" not in st.session_state:
 if "success_audio" not in st.session_state:
     st.session_state.success_audio = None
 
+if "selection_audio" not in st.session_state:
+    st.session_state.selection_audio = None
+
 if "mode" not in st.session_state:
     st.session_state.mode = "voice"
 
@@ -447,37 +450,46 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
     amount = st.session_state.user_amount
     tenure = st.session_state.user_tenure
     
-    st.markdown('<div class="fd-cards-container">', unsafe_allow_html=True)
+    cards_html = '<div class="fd-cards-container">'
     
-    # Find highest rate for badge
     max_rate = max(fd["rate"] for fd in FD_OPTIONS)
     
-    for i, fd in enumerate(FD_OPTIONS):
+    for i, fd in enumerate(FD_OPTIONS[:3]):
         interest = round(amount * fd["rate"] / 100 * tenure)
         badge_html = '<span class="fd-card-badge">सर्वोत्तम</span>' if fd["rate"] == max_rate else ""
         
-        st.markdown(f'''
-        <div class="fd-card" id="fd-card-{i}">
-            <div class="fd-card-header">
-                <span class="fd-card-bank">{fd["bank"]}</span>
-                <span class="fd-card-rate">{fd["rate"]}%</span>
-            </div>
-            <div class="fd-card-details">
-                <span class="fd-card-interest">अनुमानित ब्याज: ₹{interest:,} ({tenure} साल)</span>
-                {badge_html}
-            </div>
-        </div>
-        ''', unsafe_allow_html=True)
-        
+        cards_html += f'<div class="fd-card" id="fd-card-{i}"><div class="fd-card-header"><span class="fd-card-bank">{fd["bank"]}</span><span class="fd-card-rate">{fd["rate"]}%</span></div><div class="fd-card-details"><span class="fd-card-interest">अनुमानित ब्याज: ₹{interest:,} ({tenure} साल)</span>{badge_html}</div></div>'
+
+    cards_html += '</div>'
+    st.markdown(cards_html, unsafe_allow_html=True)
+    
+    for i, fd in enumerate(FD_OPTIONS[:3]):
         if st.button(f"{fd['bank']} चुनें", key=f"select_fd_{i}", use_container_width=True):
             st.session_state.selected_fd = fd
             st.session_state.show_fd_options = False
             st.session_state.booking_confirmed = True
             selected_msg = f"आपने {fd['bank']} को चुना है ({fd['rate']}% ब्याज दर)। अब बुकिंग के लिए अपना 12-अंकों का आधार नंबर बताएं।"
             st.session_state.messages.append({"role": "assistant", "content": selected_msg})
+            if api_key_set:
+                with st.spinner("🤔 सोच रहा हूं..."):
+                    from pipeline import text_to_speech_hindi
+                    audio_out = text_to_speech_hindi(selected_msg)
+                    st.session_state.selection_audio = audio_out
             st.rerun()
 
-    st.markdown('</div>')
+# Play selection confirmation audio
+if st.session_state.booking_confirmed and hasattr(st.session_state, 'selection_audio') and st.session_state.selection_audio:
+    b64_audio = base64.b64encode(st.session_state.selection_audio).decode('utf-8')
+    audio_html = f'''
+    <audio id="selectionAudio" autoplay>
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
+    <script>
+        document.getElementById('selectionAudio').play().catch(function(e) {{}});
+    </script>
+    '''
+    st.markdown(audio_html, unsafe_allow_html=True)
+    st.session_state.selection_audio = None
 
 # ── Booking Flow ─────────────────────────────────
 if st.session_state.booking_confirmed and not st.session_state.booking_success:
@@ -493,9 +505,10 @@ if st.session_state.booking_confirmed and not st.session_state.booking_success:
             })
             # Generate TTS for success message
             if api_key_set:
-                from pipeline import text_to_speech_hindi
-                audio_out = text_to_speech_hindi(success_msg)
-                st.session_state.success_audio = audio_out
+                with st.spinner("🤔 सोच रहा हूं..."):
+                    from pipeline import text_to_speech_hindi
+                    audio_out = text_to_speech_hindi(success_msg)
+                    st.session_state.success_audio = audio_out
             st.rerun()
 
 # Play success audio
@@ -522,22 +535,24 @@ if st.session_state.booking_success:
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button("नया सवाल", use_container_width=True):
+    if st.button("नया सवाल", use_container_width=True, key="new_question_success"):
         st.session_state.messages = []
         st.session_state.booking_confirmed = False
         st.session_state.booking_success = False
         st.session_state.show_fd_options = False
         st.session_state.selected_fd = None
+        st.session_state.selection_audio = None
         st.rerun()
 
 # ── Reset ───────────────────────────────────────────
 if st.session_state.messages:
     _, btn_col, _ = st.columns([1, 1, 1])
     with btn_col:
-        if st.button("नया सवाल", use_container_width=True):
+        if st.button("नया सवाल", use_container_width=True, key="new_question_reset"):
             st.session_state.messages = []
             st.session_state.booking_confirmed = False
             st.session_state.booking_success = False
             st.session_state.show_fd_options = False
             st.session_state.selected_fd = None
+            st.session_state.selection_audio = None
             st.rerun()
