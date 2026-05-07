@@ -330,7 +330,7 @@ if st.session_state.mode == "voice":
             st.session_state.call_started = True
             st.rerun()
 
-# Show ringing before connecting
+# Show ringing animation with auto-connect via URL param
 if st.session_state.call_started and not st.session_state.intro_shown:
     st.markdown('''
     <div style="text-align: center; padding: 40px;">
@@ -338,29 +338,22 @@ if st.session_state.call_started and not st.session_state.intro_shown:
         <p style="color: #666; margin-top: 16px;">कॉल कनेक्ट हो रहा है...</p>
     </div>
     <script>
-    (function() {
-        try {
-            var ctx = new (window.AudioContext || window.webkitAudioContext)();
-            var now = ctx.currentTime;
-            for(var i=0; i<3; i++) {
-                var osc = ctx.createOscillator();
-                var gain = ctx.createGain();
-                osc.type = "sine";
-                osc.frequency.value = 440 + (i*40);
-                gain.gain.value = 0.1;
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(now + i*0.6);
-                osc.stop(now + i*0.6 + 0.3);
-            }
-        } catch(e) {}
-    })();
-    setTimeout(function(){ window.location.reload(); }, 2500);
+    setTimeout(function(){
+        var url = new URL(window.location.href);
+        url.searchParams.set('call_connected', '1');
+        window.location.href = url.toString();
+    }, 2000);
     </script>
     ''', unsafe_allow_html=True)
     st.stop()
 
-# Show intro after ring
+# Check URL for auto-connect
+if st.query_params.get('call_connected') == '1':
+    st.session_state.intro_shown = True
+    # Remove param to clean URL
+    st.query_params.clear()
+
+# Show intro after ring is done
 if st.session_state.call_started and not st.session_state.intro_shown:
     intro_text = "नमस्ते! संचायक में आपका स्वागत है। मैं आपकी FD सलाहकार हूँ। बताइए, मैं आपकी कैसे मदद कर सकती हूँ?"
     st.session_state.messages.append({"role": "assistant", "content": intro_text})
