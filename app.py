@@ -8,6 +8,7 @@ from fd_data import FD_OPTIONS
 from dotenv import load_dotenv
 
 load_dotenv()
+load_dotenv(".env")
 
 st.set_page_config(
     page_title="संचायक",
