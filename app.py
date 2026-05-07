@@ -464,8 +464,6 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
             selected_msg = f"आपने {fd['bank']} को चुना है ({fd['rate']}% ब्याज दर)। अब बुकिंग के लिए अपना 12-अंकों का आधार नंबर बताएं।"
             st.session_state.messages.append({"role": "assistant", "content": selected_msg})
             st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Booking Flow ─────────────────────────────────
 if st.session_state.booking_confirmed and not st.session_state.booking_success:
