@@ -465,6 +465,8 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
             st.session_state.messages.append({"role": "assistant", "content": selected_msg})
             st.rerun()
 
+    st.markdown('</div>')
+
 # ── Booking Flow ─────────────────────────────────
 if st.session_state.booking_confirmed and not st.session_state.booking_success:
     st.markdown("---")
