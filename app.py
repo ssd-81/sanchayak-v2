@@ -188,14 +188,16 @@ iframe[title*="audio_recorder"] {
     background: transparent !important;
     display: block !important;
     margin: 0 auto !important;
+    width: 60px !important;
+    height: 60px !important;
 }
 
 /* ── Status Text ── */
 .status-text {
     text-align: center;
     color: #555;
-    font-size: 13px;
-    margin-top: 12px;
+    font-size: 11px;
+    margin-top: 6px;
     font-weight: 400;
     letter-spacing: 0.5px;
 }
@@ -339,38 +341,35 @@ if "Voice" in mode:
     if "voice_key" not in st.session_state:
         st.session_state.voice_key = 0
 
-    # Centered mic
-    _, mic_col, _ = st.columns([1, 1, 1])
-    with mic_col:
-        # Stop any playing audio
-        st.markdown("""
-        <audio id="stopAllAudio" style="display:none;"></audio>
-        <script>
-        var allAudios = document.querySelectorAll('audio');
-        allAudios.forEach(function(audio) {
-            audio.pause();
-            audio.currentTime = 0;
-        });
-        </script>
-        """, unsafe_allow_html=True)
-        
-        audio_bytes = audio_recorder(
-            text="",
-            icon_size="3x",
-            sample_rate=16000,
-            pause_threshold=2.0,
-            neutral_color="#ffffff",
-            recording_color="#ff4444",
-            key=f"voice_recorder_{st.session_state.voice_key}"
-        )
+    # Stop any playing audio
+    st.markdown("""
+    <audio id="stopAllAudio" style="display:none;"></audio>
+    <script>
+    var allAudios = document.querySelectorAll('audio');
+    allAudios.forEach(function(audio) {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    </script>
+    """, unsafe_allow_html=True)
+    
+    audio_bytes = audio_recorder(
+        text="",
+        icon_size="2x",
+        sample_rate=16000,
+        pause_threshold=2.0,
+        neutral_color="#ffffff",
+        recording_color="#ff4444",
+        key=f"voice_recorder_{st.session_state.voice_key}"
+    )
 
-    st.markdown('<div class="status-text">Tap to record</div>', unsafe_allow_html=True)
+    st.markdown('<div class="status-text">रिकॉर्ड करने के लिए टैप करें</div>', unsafe_allow_html=True)
 
     if audio_bytes and len(audio_bytes) > 1000:
         st.session_state.processing = True
         
         # Append user message FIRST (so it's in history for LLM)
-        transcript_placeholder = "Recording..."
+        transcript_placeholder = "रिकॉर्डिंग..."
         st.session_state.messages.append({"role": "user", "content": transcript_placeholder})
         
         with st.spinner("सोच रहा हूँ..."):
@@ -420,7 +419,7 @@ if st.session_state.pending_audio:
 
 # ── Chat Mode ───────────────────────────────────────
 elif "Chat" in mode:
-    user_input = st.chat_input("Hindi mein likhiye...")
+    user_input = st.chat_input("हिंदी में लिखिए...")
     if user_input:
         with st.spinner("सोच रहा हूँ..."):
             try:
@@ -528,10 +527,9 @@ if st.session_state.booking_success and hasattr(st.session_state, 'success_audio
 # ── Success Screen ─────────────────────────────────
 if st.session_state.booking_success:
     st.markdown("""
-    <div style="text-align: center; padding: 60px 20px;">
-        <h1 style="font-size: 48px; margin-bottom: 24px;">✅</h1>
-        <h2 style="color: #10a37f; margin-bottom: 16px;">बुकिंग कन्फर्म हो गई!</h2>
-        <p style="color: #888; font-size: 16px;">आपको कन्फर्मेशन एसएमएस भेज दिया गया है</p>
+    <div style="text-align: center; padding: 40px 20px;">
+        <h2 style="color: #4ade80; margin-bottom: 8px;">बुकिंग कन्फर्म! ✅</h2>
+        <p style="color: #666; font-size: 14px;">कन्फर्मेशन एसएमएस भेज दिया गया</p>
     </div>
     """, unsafe_allow_html=True)
     

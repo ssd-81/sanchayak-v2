@@ -122,6 +122,8 @@ def get_groq_client():
 
 def transcribe_audio(audio_bytes: bytes) -> str:
     """Hindi audio bytes to Hindi text via Groq Whisper"""
+    global _current_key_index
+    from groq import Groq
     last_error = None
     for i in range(len(_api_keys)):
         idx = (_current_key_index + i) % len(_api_keys)
@@ -148,6 +150,8 @@ def transcribe_audio(audio_bytes: bytes) -> str:
 
 def get_fd_advice(user_query: str, chat_history: list = None) -> str:
     """Hindi text to Hindi FD advice via Groq LLM"""
+    global _current_key_index
+    from groq import Groq
     if chat_history is None:
         chat_history = []
         
