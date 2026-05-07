@@ -56,10 +56,11 @@ div[data-testid="stStatusWidget"] { display: none !important; }
 }
 
 .fd-header p {
-    font-size: 14px;
-    color: #666;
+    font-size: 13px;
+    color: #888;
     margin: 0;
     font-weight: 400;
+    letter-spacing: 0.3px;
 }
 
 /* ── Mode Toggle Buttons ── */
@@ -317,7 +318,7 @@ if "otp_verified" not in st.session_state:
 st.markdown("""
 <div class="fd-header">
     <h1>संचायक</h1>
-    <p>Hindi mein boliye, FD ke baare mein janiye</p>
+    <p>हिंदी में बोलिए, एफडी के बारे में जानिए</p>
 </div>
 """, unsafe_allow_html=True)
 
