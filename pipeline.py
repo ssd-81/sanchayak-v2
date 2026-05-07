@@ -8,6 +8,7 @@ from hindi_numbers import extract_amount, extract_tenure
 from dotenv import load_dotenv
 
 load_dotenv()
+load_dotenv(".env")
 
 def _get_api_keys():
     """Get list of API keys, primary first, backup second"""
