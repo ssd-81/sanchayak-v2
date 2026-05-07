@@ -373,15 +373,6 @@ if "Voice" in mode:
                 st.session_state.pending_audio = audio_out
                 # Increment key to reset recorder and prevent re-submit
                 st.session_state.voice_key += 1
-                
-                # Check if LLM is presenting options (amount + tenure detected)
-                if any(word in advice for word in ["विकल्प", "चुनना", "चुनें", "चुनिए", "मिलेगा", "ब्याज"]):
-                    st.session_state.show_fd_options = True
-                
-                # Check if booking requested - more keywords
-                advice_lower = advice.lower()
-                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija", "आधार", "बुकिंग", "कन्फर्म"]):
-                    st.session_state.booking_confirmed = True
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
         
@@ -416,19 +407,12 @@ elif "Chat" in mode:
 
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 st.session_state.messages.append({"role": "assistant", "content": advice})
-                
-                # Check if LLM is presenting options (amount + tenure detected)
-                if any(word in advice for word in ["विकल्प", "चुनना", "चुनें", "चुनिए", "मिलेगा", "ब्याज"]):
-                    st.session_state.show_fd_options = True
-                
-                # Check if booking requested - more keywords
-                advice_lower = advice.lower()
-                if any(word in advice_lower for word in ["aadhaar", "booking", "lena hai", "chahiye hoga", "confirm kija", "आधार", "बुकिंग", "कन्फर्म"]):
-                    st.session_state.booking_confirmed = True
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Error: {str(e)}"})
 
         st.rerun()
+
+# ── FD Option Cards ─────────────────────────────────
 
 # ── FD Option Cards ─────────────────────────────────
 if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
