@@ -322,10 +322,10 @@ if "selected_fd" not in st.session_state:
     st.session_state.selected_fd = None
 
 if "user_amount" not in st.session_state:
-    st.session_state.user_amount = 50000
+    st.session_state.user_amount = None
 
 if "user_tenure" not in st.session_state:
-    st.session_state.user_tenure = 2
+    st.session_state.user_tenure = None
 
 if "otp_generated" not in st.session_state:
     st.session_state.otp_generated = None
@@ -410,6 +410,12 @@ if "Voice" in mode:
                     advice = mock_fd_advice("FD query")
                     audio_out = None
                 
+                from hindi_numbers import extract_amount, extract_tenure
+                if amt := extract_amount(transcript):
+                    st.session_state.user_amount = amt
+                if ten := extract_tenure(transcript):
+                    st.session_state.user_tenure = ten
+
                 st.session_state.messages[-1] = {"role": "user", "content": transcript}
                 st.session_state.messages.append({"role": "assistant", "content": advice})
                 st.session_state.pending_audio = audio_out
@@ -455,11 +461,17 @@ elif "Chat" in mode:
                 else:
                     advice = mock_fd_advice(user_input)
 
+                from hindi_numbers import extract_amount, extract_tenure
+                if amt := extract_amount(user_input):
+                    st.session_state.user_amount = amt
+                if ten := extract_tenure(user_input):
+                    st.session_state.user_tenure = ten
+
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 st.session_state.messages.append({"role": "assistant", "content": advice})
                 
                 # Trigger FD options AFTER message is shown
-                if any(word in advice for word in ["विकल्प", "सुझाव", "रखे"]):
+                if any(word in advice for word in ["विकल्प", "सुझाव", "रखे", "चुनना", "चुनें", "चुनिए", "ब्याज"]):
                     st.session_state.show_fd_options = True
                 
                 # Check booking - AFTER message shown
@@ -472,7 +484,7 @@ elif "Chat" in mode:
         st.rerun()
 
 # ── FD Option Cards ─────────────────────────────────
-if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
+if st.session_state.show_fd_options and not st.session_state.booking_confirmed and st.session_state.user_amount is not None and st.session_state.user_tenure is not None:
     amount = st.session_state.user_amount
     tenure = st.session_state.user_tenure
     
