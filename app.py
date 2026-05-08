@@ -263,22 +263,20 @@ div[data-testid="stChatInput"] {
 }
 </style>
 <script>
-// Stop audio when user clicks the mic (iframe) or switches tabs
-if (!window.audioBlurListenerAdded) {
-    window.addEventListener('blur', function() {
-        if (window.currentAudio) {
+if (!window.audioStopSetup) {
+    window.audioStopSetup = true;
+    function stopAudio() {
+        if (window.currentAudio && !window.currentAudio.paused) {
             window.currentAudio.pause();
         }
-        var allAudios = window.parent.document.querySelectorAll('audio');
-        allAudios.forEach(function(audio) {
-            audio.pause();
-        });
-        var localAudios = document.querySelectorAll('audio');
-        localAudios.forEach(function(audio) {
-            audio.pause();
-        });
-    });
-    window.audioBlurListenerAdded = true;
+        document.querySelectorAll('audio').forEach(function(a) { a.pause(); });
+    }
+    window.addEventListener('blur', stopAudio);
+    setInterval(function() {
+        if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
+            stopAudio();
+        }
+    }, 200);
 }
 </script>
 """, unsafe_allow_html=True)
@@ -431,15 +429,16 @@ if "Voice" in mode:
 if st.session_state.pending_audio:
     # Convert to base64 for reliable autoplay
     b64_audio = base64.b64encode(st.session_state.pending_audio).decode('utf-8')
+    import time
+    audio_id = f"audio_{int(time.time() * 1000)}"
     audio_html = f'''
+    <audio id="{audio_id}" autoplay style="display:none;">
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
     <script>
-        if (window.currentAudio) {{
-            window.currentAudio.pause();
-        }}
-        window.currentAudio = new Audio("data:audio/mp3;base64,{b64_audio}");
-        window.currentAudio.play().catch(function(e) {{
-            console.log('Autoplay blocked:', e);
-        }});
+        if (window.currentAudio) window.currentAudio.pause();
+        window.currentAudio = document.getElementById("{audio_id}");
+        if (window.currentAudio) window.currentAudio.play().catch(e => console.log(e));
     </script>
     '''
     st.markdown(audio_html, unsafe_allow_html=True)
@@ -507,13 +506,16 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
 # Play selection confirmation audio
 if st.session_state.booking_confirmed and hasattr(st.session_state, 'selection_audio') and st.session_state.selection_audio:
     b64_audio = base64.b64encode(st.session_state.selection_audio).decode('utf-8')
+    import time
+    audio_id = f"audio_sel_{int(time.time() * 1000)}"
     audio_html = f'''
+    <audio id="{audio_id}" autoplay style="display:none;">
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
     <script>
-        if (window.currentAudio) {{
-            window.currentAudio.pause();
-        }}
-        window.currentAudio = new Audio("data:audio/mp3;base64,{b64_audio}");
-        window.currentAudio.play().catch(function(e) {{}});
+        if (window.currentAudio) window.currentAudio.pause();
+        window.currentAudio = document.getElementById("{audio_id}");
+        if (window.currentAudio) window.currentAudio.play().catch(e => console.log(e));
     </script>
     '''
     st.markdown(audio_html, unsafe_allow_html=True)
@@ -562,13 +564,16 @@ if st.session_state.booking_confirmed and not st.session_state.booking_success:
 # Play success audio
 if st.session_state.booking_success and hasattr(st.session_state, 'success_audio') and st.session_state.success_audio:
     b64_audio = base64.b64encode(st.session_state.success_audio).decode('utf-8')
+    import time
+    audio_id = f"audio_suc_{int(time.time() * 1000)}"
     audio_html = f'''
+    <audio id="{audio_id}" autoplay style="display:none;">
+        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+    </audio>
     <script>
-        if (window.currentAudio) {{
-            window.currentAudio.pause();
-        }}
-        window.currentAudio = new Audio("data:audio/mp3;base64,{b64_audio}");
-        window.currentAudio.play().catch(function(e) {{}});
+        if (window.currentAudio) window.currentAudio.pause();
+        window.currentAudio = document.getElementById("{audio_id}");
+        if (window.currentAudio) window.currentAudio.play().catch(e => console.log(e));
     </script>
     '''
     st.markdown(audio_html, unsafe_allow_html=True)
