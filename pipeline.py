@@ -5,11 +5,6 @@ import traceback
 import functools
 from fd_data import FD_OPTIONS
 from hindi_numbers import extract_amount, extract_tenure
-from dotenv import load_dotenv
-import pathlib
-
-env_path = pathlib.Path(__file__).parent / ".env"
-load_dotenv(env_path, override=True)
 
 def _get_api_keys():
     """Get list of API keys, primary first, backup second"""
@@ -20,37 +15,49 @@ def _get_api_keys():
         keys.append(primary)
     if backup and backup.strip():
         keys.append(backup)
-    if not keys:
-        raise ValueError("No GROQ_API_KEY set in environment")
     return keys
 
-_api_keys = _get_api_keys()
+_api_keys = None
 _current_key_index = 0
+
+def _ensure_api_keys():
+    global _api_keys
+    if _api_keys is None:
+        _api_keys = _get_api_keys()
+    if not _api_keys:
+        return None
+    return _api_keys
 
 @functools.lru_cache(maxsize=1)
 def _get_cached_client():
     """Cached Groq client to avoid re-initialization"""
     global _current_key_index
+    keys = _ensure_api_keys()
+    if not keys:
+        return None
     from groq import Groq
-    api_key = _api_keys[_current_key_index]
+    api_key = keys[_current_key_index]
     return Groq(api_key=api_key, timeout=60)
 
 def _get_client_with_fallback():
     """Get Groq client, fallback to backup key if rate limited"""
     global _current_key_index
+    keys = _ensure_api_keys()
+    if not keys:
+        return None
     from groq import Groq
     
-    for i in range(len(_api_keys)):
-        idx = (_current_key_index + i) % len(_api_keys)
+    for i in range(len(keys)):
+        idx = (_current_key_index + i) % len(keys)
         try:
-            client = Groq(api_key=_api_keys[idx], timeout=60)
+            client = Groq(api_key=keys[idx], timeout=60)
             _current_key_index = idx
             return client
         except Exception as e:
             print(f"[API] Key {idx+1} failed: {e}")
             continue
     
-    raise ValueError("All Groq API keys failed")
+    return None
 
 
 SYSTEM_PROMPT = """Aap (aurat) ek helpful FD advisor hain. Aapke Baal GM ka kaam hai, aapko customers ki madad karni hai. Aapka kaam users ko Hindi mein samjhana hai ki kahaan FD rakhein jo sabse zyada fayda milega.
@@ -193,13 +200,17 @@ def transcribe_audio(audio_bytes: bytes) -> str:
     global _current_key_index
     from groq import Groq
     
+    keys = _ensure_api_keys()
+    if not keys:
+        return "Demo mode - मेरा नाम संचायक है और मैं आपकी FD में मदद करती हूँ"
+    
     audio_bytes = fix_wav_audio(audio_bytes)
     
     last_error = None
-    for i in range(len(_api_keys)):
-        idx = (_current_key_index + i) % len(_api_keys)
+    for i in range(len(keys)):
+        idx = (_current_key_index + i) % len(keys)
         try:
-            client = Groq(api_key=_api_keys[idx], timeout=60)
+            client = Groq(api_key=keys[idx], timeout=60)
             _current_key_index = idx
             transcription = client.audio.transcriptions.create(
                 file=("audio.wav", audio_bytes),
@@ -225,6 +236,10 @@ def get_fd_advice(user_query: str, chat_history: list = None) -> str:
     from groq import Groq
     if chat_history is None:
         chat_history = []
+    
+    keys = _ensure_api_keys()
+    if not keys:
+        return "Demo mode - मैं आपकी FD में मदद कर सकती हूँ। कृपया अपना बजट और tenure बताएं।"
         
     messages = [
         {
@@ -243,10 +258,10 @@ def get_fd_advice(user_query: str, chat_history: list = None) -> str:
     messages.append({"role": "user", "content": user_query})
 
     last_error = None
-    for i in range(len(_api_keys)):
-        idx = (_current_key_index + i) % len(_api_keys)
+    for i in range(len(keys)):
+        idx = (_current_key_index + i) % len(keys)
         try:
-            client = Groq(api_key=_api_keys[idx], timeout=60)
+            client = Groq(api_key=keys[idx], timeout=60)
             _current_key_index = idx
             response = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
