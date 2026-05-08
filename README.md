@@ -4,10 +4,29 @@ Voice-based Hindi financial advisory for Tier 2/3 India. Speaks Hindi, hears Hin
 
 ## Quick Start
 
+### 1. Create `.env` file
+
+Create a `.env` file in the project root with your API keys:
+
+```bash
+# Required: Groq API key (get free key at https://console.groq.com)
+GROQ_API_KEY=your_groq_key_here
+
+# Optional: Backup key if you have one
+# GROQ_API_KEY_BACKUP=your_backup_key_here
+
+# Optional: Google Cloud TTS (leave empty to use free gTTS fallback)
+# GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json
+```
+
+### 2. Run the app
+
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
+
+> **Note:** If you skip `.env`, the app runs in demo mode with mock responses.
 
 ## What This Does
 
@@ -41,10 +60,12 @@ fd-advisor/
 
 ## Prerequisites
 
-Get your API keys before running:
+Get your API keys:
 
-1. Groq: console.groq.com (free tier works)
-2. Google Cloud: Enable Cloud TTS API, download credentials.json
+1. **Groq** (required): Sign up at https://console.groq.com → Create API key
+2. **Google Cloud TTS** (optional): Enable Cloud Text-to-Speech API → Download credentials.json
+
+See `.env.example` for the exact variable names.
 
 ## Demo
 
