@@ -310,7 +310,7 @@ api_key = os.environ.get("GROQ_API_KEY")
 api_key_set = bool(api_key and api_key.strip() and not api_key.startswith("your_"))
 
 if not api_key_set:
-    st.info("Demo mode - डेमो मोड में चल रहा है")
+    st.info("API nahi milega - Demo mode चल रहा है")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
