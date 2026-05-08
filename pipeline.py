@@ -5,16 +5,11 @@ import traceback
 import functools
 from fd_data import FD_OPTIONS
 from hindi_numbers import extract_amount, extract_tenure
-from dotenv import load_dotenv
-import pathlib
 
-env_path = pathlib.Path(__file__).parent / ".env"
-load_dotenv(env_path, override=True)
-
-def _get_api_keys():
+def _get_api_keys(groq_key=None):
     """Get list of API keys, primary first, backup second"""
     keys = []
-    primary = os.environ.get("GROQ_API_KEY")
+    primary = groq_key or os.environ.get("GROQ_API_KEY")
     backup = os.environ.get("GROQ_API_KEY_BACKUP")
     if primary and primary.strip():
         keys.append(primary)
@@ -269,7 +264,10 @@ def text_to_speech_google(text: str) -> bytes:
     """Hindi text to Hindi audio bytes via Google Cloud TTS"""
     from google.cloud import texttospeech
 
-    tts_client = texttospeech.TextToSpeechClient()
+    if credentials:
+        tts_client = texttospeech.TextToSpeechClient(credentials=credentials)
+    else:
+        tts_client = texttospeech.TextToSpeechClient()
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
         language_code="hi-IN", name="hi-IN-Wavenet-A"
@@ -293,24 +291,30 @@ def text_to_speech_gtts(text: str) -> bytes:
     return buf.getvalue()
 
 
-def text_to_speech_hindi(text: str, use_gtts: bool = False) -> bytes:
+def text_to_speech_hindi(text: str, google_credentials=None, use_gtts: bool = False) -> bytes:
     """Hindi text to Hindi audio bytes. Try Google first, fallback to gTTS."""
     if use_gtts:
         return text_to_speech_gtts(text)
     try:
-        return text_to_speech_google(text)
+        return text_to_speech_google(text, credentials=google_credentials)
     except Exception:
         return text_to_speech_gtts(text)
 
 
-def run_pipeline(audio_bytes: bytes, chat_history: list = None, use_gtts: bool = False):
+def run_pipeline(audio_bytes: bytes, chat_history: list = None, groq_key: str = None, google_credentials=None, use_gtts: bool = False):
     """Full loop: audio to transcript to advice to speech"""
+    global _api_keys, _current_key_index
+    
+    if groq_key:
+        _api_keys = [groq_key]
+        _current_key_index = 0
+    
     print(f"[PIPELINE] Audio received: {len(audio_bytes)} bytes")
     transcript = transcribe_audio(audio_bytes)
     print(f"[PIPELINE] Transcript: {transcript[:50]}...")
     advice = get_fd_advice(transcript, chat_history=chat_history)
     print(f"[PIPELINE] Advice: {advice[:50]}...")
-    audio_out = text_to_speech_hindi(advice, use_gtts=use_gtts)
+    audio_out = text_to_speech_hindi(advice, google_credentials=google_credentials, use_gtts=use_gtts)
     print(f"[PIPELINE] Audio out: {len(audio_out)} bytes")
     return transcript, advice, audio_out
 

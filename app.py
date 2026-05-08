@@ -1,15 +1,17 @@
 import streamlit as st
 import os
 import base64
+import json
 from audio_recorder_streamlit import audio_recorder
 from pipeline import run_pipeline, get_fd_advice
 from test_utils import mock_fd_advice
 from fd_data import FD_OPTIONS
-from dotenv import load_dotenv
-import pathlib
+from google.oauth2 import service_account
 
-env_path = pathlib.Path(__file__).parent / ".env"
-load_dotenv(env_path, override=True)
+groq_key = st.secrets["GROQ_API_KEY"]
+
+creds_info = json.loads(st.secrets["google"]["credentials_json"])
+google_creds = service_account.Credentials.from_service_account_info(creds_info)
 
 st.set_page_config(
     page_title="संचायक",
@@ -306,8 +308,7 @@ if (!window.audioStopSetup) {
 """, unsafe_allow_html=True)
 
 # ── State ───────────────────────────────────────────
-api_key = os.environ.get("GROQ_API_KEY")
-api_key_set = bool(api_key and api_key.strip() and not api_key.startswith("your_"))
+api_key_set = bool(groq_key and groq_key.strip() and not groq_key.startswith("your_"))
 
 if not api_key_set:
     st.warning("API key nahi milega - demo mode chal raha hai")
@@ -430,7 +431,12 @@ if "Voice" in mode:
         with st.spinner("सोच रही हूँ..."):
             try:
                 if api_key_set:
-                    transcript, advice, audio_out = run_pipeline(audio_bytes, chat_history=st.session_state.messages)
+                    transcript, advice, audio_out = run_pipeline(
+                        audio_bytes, 
+                        chat_history=st.session_state.messages,
+                        groq_key=groq_key,
+                        google_credentials=google_creds
+                    )
                 else:
                     transcript = "Mock transcription"
                     advice = mock_fd_advice("FD query")
