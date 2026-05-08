@@ -78,7 +78,12 @@ def parse_hindi_number(text: str) -> int | None:
 def extract_amount(text: str) -> int | None:
     if not text:
         return None
-    return parse_hindi_number(text)
+        
+    text_lower = text.lower()
+    # Remove tenure phrases so their numbers aren't confused for amounts
+    text_without_tenure = re.sub(r'(\d+|ek|do|teen|char|paanch|chah|saath|aath|nau|das|एक|दो|तीन|चार|पांच|छह|सात|आठ|नौ|दस)\s*(saal|sal|saalo|salo|साल|सालों|वर्ष)', '', text_lower)
+    
+    return parse_hindi_number(text_without_tenure)
 
 def extract_tenure(text: str) -> int | None:
     if not text:
