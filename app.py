@@ -310,7 +310,7 @@ api_key = os.environ.get("GROQ_API_KEY")
 api_key_set = bool(api_key and api_key.strip() and not api_key.startswith("your_"))
 
 if not api_key_set:
-    st.warning("⚠️ API key nahi milega - demo mode chal raha hai")
+    st.warning("API key nahi milega - demo mode chal raha hai")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -368,11 +368,11 @@ st.markdown("""
 # ── Mode Toggle ─────────────────────────────────────
 col_v, col_c = st.columns(2, gap="small")
 with col_v:
-    if st.button("🎙️ Voice", key="mode_voice", use_container_width=True):
+    if st.button("बोलें", key="mode_voice", use_container_width=True):
         st.session_state.mode = "voice"
         st.rerun()
 with col_c:
-    if st.button("💬 Chat", key="mode_chat", use_container_width=True):
+    if st.button("लिखें", key="mode_chat", use_container_width=True):
         st.session_state.mode = "chat"
         st.rerun()
 
@@ -381,7 +381,7 @@ mode = "Voice" if st.session_state.mode == "voice" else "Chat"
 # ── Conversation ────────────────────────────────────
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.markdown(f'<div class="bubble-user">🎤 {msg["content"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="bubble-user">आप: {msg["content"]}</div>', unsafe_allow_html=True)
     else:
         st.markdown(f'<div class="bubble-bot">{msg["content"]}</div>', unsafe_allow_html=True)
 
