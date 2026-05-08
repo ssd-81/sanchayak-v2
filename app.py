@@ -38,7 +38,7 @@ div[data-testid="stStatusWidget"] { display: none !important; }
 
 /* ── Container ── */
 .main .block-container {
-    padding: 2rem 1rem 1rem 1rem !important;
+    padding: 2rem 1rem 120px 1rem !important; /* Padding at bottom for fixed mic */
     max-width: 640px !important;
     margin: 0 auto;
 }
@@ -179,6 +179,18 @@ div[data-testid="stColumns"] {
     white-space: pre-wrap;
 }
 
+/* ── Voice Bottom Bar ── */
+.voice-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(180deg, transparent 0%, #0a0a0a 40%);
+    z-index: 998;
+    pointer-events: none;
+}
+
 /* ── Mic Button Centering ── */
 div[data-testid="column"]:has(iframe) {
     display: flex !important;
@@ -187,21 +199,33 @@ div[data-testid="column"]:has(iframe) {
 }
 
 iframe[title*="audio_recorder"] {
+    position: fixed !important;
+    bottom: 45px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 1000 !important;
     border: none !important;
-    background: transparent !important;
+    background: #151520 !important;
+    border-radius: 50% !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
     display: block !important;
-    margin: 0 auto !important;
-    width: 60px !important;
-    height: 60px !important;
+    margin: 0 !important;
+    width: 64px !important;
+    height: 64px !important;
 }
 
 /* ── Status Text ── */
 .status-text {
+    position: fixed !important;
+    bottom: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 1000 !important;
     text-align: center;
-    color: #555;
-    font-size: 11px;
-    margin-top: 6px;
-    font-weight: 400;
+    color: #888;
+    font-size: 12px;
+    margin: 0;
+    font-weight: 500;
     letter-spacing: 0.5px;
 }
 
@@ -382,6 +406,8 @@ if "Voice" in mode:
     });
     </script>
     """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="voice-bottom-bar"></div>', unsafe_allow_html=True)
     
     audio_bytes = audio_recorder(
         text="",
@@ -612,7 +638,7 @@ if st.session_state.booking_success:
         st.rerun()
 
 # ── Reset ───────────────────────────────────────────
-if st.session_state.messages:
+if st.session_state.messages and not st.session_state.booking_success:
     _, btn_col, _ = st.columns([1, 1, 1])
     with btn_col:
         if st.button("नया सवाल", use_container_width=True, key="new_question_reset"):
