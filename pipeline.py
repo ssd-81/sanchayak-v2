@@ -126,10 +126,75 @@ def get_groq_client():
     return _get_client_with_fallback()
 
 
+def fix_wav_audio(audio_bytes: bytes) -> bytes:
+    """
+    Fix WAV audio from audio_recorder_streamlit which incorrectly sets stereo header
+    but actually records mono audio. Also ensures proper WAV format for Whisper.
+    """
+    if len(audio_bytes) < 44:
+        return audio_bytes
+    
+    try:
+        data = io.BytesIO(audio_bytes)
+        
+        riff = data.read(4)
+        if riff != b'RIFF':
+            return audio_bytes
+        
+        wave = data.read(4)
+        if wave != b'WAVE':
+            return audio_bytes
+        
+        data.seek(0)
+        view = memoryview(audio_bytes)
+        
+        num_channels = int.from_bytes(audio_bytes[22:24], 'little')
+        sample_rate = int.from_bytes(audio_bytes[24:28], 'little')
+        bits_per_sample = int.from_bytes(audio_bytes[34:36], 'little')
+        
+        print(f"[AUDIO] Original WAV: channels={num_channels}, rate={sample_rate}, bits={bits_per_sample}")
+        
+        if num_channels == 2 and bits_per_sample == 16:
+            data_offset = 44
+            audio_data = audio_bytes[data_offset:]
+            
+            samples = []
+            for i in range(0, len(audio_data) - 3, 4):
+                left = int.from_bytes(audio_data[i:i+2], 'little', signed=True)
+                right = int.from_bytes(audio_data[i+2:i+4], 'little', signed=True)
+                mono = (left + right) // 2
+                samples.append(mono.to_bytes(2, 'little', signed=True))
+            
+            mono_data = b''.join(samples)
+            
+            import wave as wave_module
+            import struct
+            
+            output = io.BytesIO()
+            with wave_module.open(output, 'wb') as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(sample_rate)
+                w.writeframes(mono_data)
+            
+            fixed_audio = output.getvalue()
+            print(f"[AUDIO] Fixed to mono: {len(fixed_audio)} bytes")
+            return fixed_audio
+        
+        return audio_bytes
+        
+    except Exception as e:
+        print(f"[AUDIO] Error fixing WAV: {e}")
+        return audio_bytes
+
+
 def transcribe_audio(audio_bytes: bytes) -> str:
     """Hindi audio bytes to Hindi text via Groq Whisper"""
     global _current_key_index
     from groq import Groq
+    
+    audio_bytes = fix_wav_audio(audio_bytes)
+    
     last_error = None
     for i in range(len(_api_keys)):
         idx = (_current_key_index + i) % len(_api_keys)
