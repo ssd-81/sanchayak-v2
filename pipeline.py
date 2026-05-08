@@ -6,9 +6,10 @@ import functools
 from fd_data import FD_OPTIONS
 from hindi_numbers import extract_amount, extract_tenure
 from dotenv import load_dotenv
+import pathlib
 
-load_dotenv()
-load_dotenv(".env")
+env_path = pathlib.Path(__file__).parent / ".env"
+load_dotenv(env_path, override=True)
 
 def _get_api_keys():
     """Get list of API keys, primary first, backup second"""

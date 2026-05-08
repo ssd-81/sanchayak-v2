@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import pathlib
 
 env_path = pathlib.Path(__file__).parent / ".env"
-load_dotenv(env_path)
+load_dotenv(env_path, override=True)
 
 st.set_page_config(
     page_title="संचायक",
@@ -262,6 +262,25 @@ div[data-testid="stChatInput"] {
     margin: 0 auto;
 }
 </style>
+<script>
+// Stop audio when user clicks the mic (iframe) or switches tabs
+if (!window.audioBlurListenerAdded) {
+    window.addEventListener('blur', function() {
+        if (window.currentAudio) {
+            window.currentAudio.pause();
+        }
+        var allAudios = window.parent.document.querySelectorAll('audio');
+        allAudios.forEach(function(audio) {
+            audio.pause();
+        });
+        var localAudios = document.querySelectorAll('audio');
+        localAudios.forEach(function(audio) {
+            audio.pause();
+        });
+    });
+    window.audioBlurListenerAdded = true;
+}
+</script>
 """, unsafe_allow_html=True)
 
 # ── State ───────────────────────────────────────────
@@ -354,6 +373,10 @@ if "Voice" in mode:
     st.markdown("""
     <audio id="stopAllAudio" style="display:none;"></audio>
     <script>
+    if (window.currentAudio) {
+        window.currentAudio.pause();
+        window.currentAudio.currentTime = 0;
+    }
     var allAudios = document.querySelectorAll('audio');
     allAudios.forEach(function(audio) {
         audio.pause();
@@ -409,11 +432,12 @@ if st.session_state.pending_audio:
     # Convert to base64 for reliable autoplay
     b64_audio = base64.b64encode(st.session_state.pending_audio).decode('utf-8')
     audio_html = f'''
-    <audio id="responseAudio" autoplay>
-        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
-    </audio>
     <script>
-        document.getElementById('responseAudio').play().catch(function(e) {{
+        if (window.currentAudio) {{
+            window.currentAudio.pause();
+        }}
+        window.currentAudio = new Audio("data:audio/mp3;base64,{b64_audio}");
+        window.currentAudio.play().catch(function(e) {{
             console.log('Autoplay blocked:', e);
         }});
     </script>
@@ -484,11 +508,12 @@ if st.session_state.show_fd_options and not st.session_state.booking_confirmed:
 if st.session_state.booking_confirmed and hasattr(st.session_state, 'selection_audio') and st.session_state.selection_audio:
     b64_audio = base64.b64encode(st.session_state.selection_audio).decode('utf-8')
     audio_html = f'''
-    <audio id="selectionAudio" autoplay>
-        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
-    </audio>
     <script>
-        document.getElementById('selectionAudio').play().catch(function(e) {{}});
+        if (window.currentAudio) {{
+            window.currentAudio.pause();
+        }}
+        window.currentAudio = new Audio("data:audio/mp3;base64,{b64_audio}");
+        window.currentAudio.play().catch(function(e) {{}});
     </script>
     '''
     st.markdown(audio_html, unsafe_allow_html=True)
@@ -538,11 +563,12 @@ if st.session_state.booking_confirmed and not st.session_state.booking_success:
 if st.session_state.booking_success and hasattr(st.session_state, 'success_audio') and st.session_state.success_audio:
     b64_audio = base64.b64encode(st.session_state.success_audio).decode('utf-8')
     audio_html = f'''
-    <audio id="successAudio" autoplay>
-        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
-    </audio>
     <script>
-        document.getElementById('successAudio').play().catch(function(e) {{}});
+        if (window.currentAudio) {{
+            window.currentAudio.pause();
+        }}
+        window.currentAudio = new Audio("data:audio/mp3;base64,{b64_audio}");
+        window.currentAudio.play().catch(function(e) {{}});
     </script>
     '''
     st.markdown(audio_html, unsafe_allow_html=True)
